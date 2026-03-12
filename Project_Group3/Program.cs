@@ -11,6 +11,7 @@ namespace Project_Group3
             // Add services to the container.
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllersWithViews();
+            builder.Services.AddSession();
 
             builder.Services.AddSwaggerGen(c =>
             {
@@ -39,6 +40,7 @@ namespace Project_Group3
 
             app.UseHttpsRedirection();
             app.UseRouting();
+            app.UseSession();
 
             app.UseAuthorization();
 

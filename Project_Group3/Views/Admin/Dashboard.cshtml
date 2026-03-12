@@ -1,0 +1,111 @@
+﻿@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    var username = Context.Session.GetString("Username") ?? "Admin";
+}
+
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="_AdminSidebar" />
+
+        <main class="dashboard-content">
+            <header class="dashboard-header">
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35m1.85-4.65a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z" /></svg>
+                    <input type="search" placeholder="Search users, products, orders..." />
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.857 17H18a2 2 0 0 0 2-2v-1.586a2 2 0 0 0-.586-1.414l-.707-.707A2 2 0 0 1 18 9.879V8a6 6 0 1 0-12 0v1.879a2 2 0 0 1-.707 1.414l-.707.707A2 2 0 0 0 4 13.414V15a2 2 0 0 0 2 2h3.143M9 17a3 3 0 0 0 6 0" /></svg></button>
+                    <button class="icon-btn" title="System alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" /></svg></button>
+                    <div class="profile-chip">
+                        <div class="avatar">@username[0]</div>
+                        <div>
+                            <strong>@username</strong>
+                            <small>Super Admin</small>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <section class="kpi-grid">
+                <article class="stat-card">
+                    <div class="card-head"><span>Total Users</span><span class="kpi-icon">👤</span></div>
+                    <h3>52,480</h3>
+                    <p class="positive">+12.4% <span>↗</span> this month</p>
+                </article>
+                <article class="stat-card">
+                    <div class="card-head"><span>Total Products</span><span class="kpi-icon">◻</span></div>
+                    <h3>18,235</h3>
+                    <p class="positive">+8.9% <span>↗</span> this month</p>
+                </article>
+                <article class="stat-card">
+                    <div class="card-head"><span>Total Orders</span><span class="kpi-icon">◎</span></div>
+                    <h3>11,902</h3>
+                    <p class="negative">-2.1% <span>↘</span> this week</p>
+                </article>
+                <article class="stat-card">
+                    <div class="card-head"><span>Total Revenue</span><span class="kpi-icon">$</span></div>
+                    <h3>$1.24M</h3>
+                    <p class="positive">+16.3% <span>↗</span> this month</p>
+                </article>
+            </section>
+
+            <section class="chart-grid">
+                <article class="panel-card">
+                    <h2>Orders per day</h2>
+                    <svg viewBox="0 0 360 180" class="line-chart" aria-label="Orders per day">
+                        <polyline points="10,140 55,120 100,125 145,90 190,95 235,62 280,74 325,40" />
+                    </svg>
+                </article>
+                <article class="panel-card">
+                    <h2>New users per week</h2>
+                    <div class="bar-chart">
+                        <span style="height:40%"></span><span style="height:62%"></span><span style="height:55%"></span><span style="height:74%"></span><span style="height:66%"></span><span style="height:85%"></span>
+                    </div>
+                </article>
+                <article class="panel-card">
+                    <h2>Category distribution</h2>
+                    <div class="pie-chart"></div>
+                    <ul class="legend">
+                        <li><i class="c1"></i> Electronics 38%</li>
+                        <li><i class="c2"></i> Fashion 27%</li>
+                        <li><i class="c3"></i> Home 21%</li>
+                        <li><i class="c4"></i> Others 14%</li>
+                    </ul>
+                </article>
+            </section>
+
+            <section class="bottom-grid">
+                <article class="panel-card">
+                    <h2>Recent Activities</h2>
+                    <ul class="activity-list">
+                        <li><span class="event-dot"></span> New user registered <small>2 mins ago</small></li>
+                        <li><span class="event-dot"></span> Seller posted new product <small>15 mins ago</small></li>
+                        <li><span class="event-dot"></span> Product reported by buyer <small>48 mins ago</small></li>
+                        <li><span class="event-dot"></span> Complaint submitted <small>1 hr ago</small></li>
+                    </ul>
+                </article>
+
+                <article class="panel-card">
+                    <h2>Admin Alerts</h2>
+                    <table class="alert-table">
+                        <tr><th>Alert</th><th>Level</th><th>Time</th></tr>
+                        <tr><td>27 products reported</td><td><span class="tag warning">Warning</span></td><td>5m</td></tr>
+                        <tr><td>Suspicious user activity</td><td><span class="tag danger">High</span></td><td>18m</td></tr>
+                        <tr><td>Server load above 82%</td><td><span class="tag warning">Warning</span></td><td>31m</td></tr>
+                    </table>
+                </article>
+
+                <article class="panel-card">
+                    <h2>Quick Actions</h2>
+                    <div class="action-buttons">
+                        <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-indigo">Approve new users</a>
+                        <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-outline-indigo">Review reported products</a>
+                        <a asp-controller="Admin" asp-action="ComplaintsDisputes" class="btn btn-outline-indigo">View complaints</a>
+                        <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-outline-indigo">Monitor system health</a>
+                    </div>
+                </article>
+            </section>
+        </main>
+    </div>
+</div>
