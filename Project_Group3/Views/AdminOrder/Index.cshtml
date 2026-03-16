@@ -1,0 +1,77 @@
+﻿<h2 class="mb-4">Order Management</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <table class="table table-hover align-middle">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>Order ID</th>
+                    <th>Buyer</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var o in Model)
+                {
+                    <tr>
+                        <td>
+                            <b>#@o.id</b>
+                        </td>
+
+                        <td>
+                            User @o.buyerId
+                        </td>
+
+                        <td>
+                            @o.orderDate?.ToString("dd/MM/yyyy")
+                        </td>
+
+                        <td>
+                            $@o.totalPrice
+                        </td>
+
+                        <td>
+
+                            @if (o.status == "Pending")
+                            {
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            }
+                            else if (o.status == "Completed")
+                            {
+                                <span class="badge bg-success">Completed</span>
+                            }
+                            else if (o.status == "Cancelled")
+                            {
+                                <span class="badge bg-danger">Cancelled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">@o.status</span>
+                            }
+
+                        </td>
+
+                        <td>
+
+                            <a class="btn btn-sm btn-primary"
+                               href="/AdminOrder/Details/@o.id">
+                                View
+                            </a>
+
+                        </td>
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+</div>
