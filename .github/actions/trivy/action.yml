@@ -1,0 +1,25 @@
+name: 'Trivy Security Scanner'
+description: 'Scan container images for vulnerabilities using Trivy'
+
+inputs:
+  image-ref:
+    description: 'Container image reference '
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        image-ref: ${{ inputs.image-ref }}
+        format: 'template'
+        template: '@/contrib/sarif.tpl'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+        category: 'Trivy ${{ inputs.image-ref }}'

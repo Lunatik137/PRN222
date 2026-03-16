@@ -1,0 +1,57 @@
+name: 'Terraform Action'
+description: 'Reusable GitHub Action for Terraform operations'
+
+inputs:
+  environment:
+    description: 'Deployment environment'
+    required: true
+
+outputs:
+  cluster-name:
+    description: 'ECS Cluster Name'
+    value: ${{ steps.outputs.outputs.cluster-name }}
+  frontend:
+    description: 'ECS Service Name'
+    value: ${{ steps.outputs.outputs.frontend }}
+  backend:
+    description: 'Task Definition Name'
+    value: ${{ steps.outputs.outputs.backend }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Terraform Init
+      run: terraform init -backend-config="key=state/${{ inputs.environment }}/terraform.tfstate"
+      shell: bash
+      working-directory: './infra'
+
+    - name: Terraform Format
+      run: terraform fmt 
+      shell: bash
+      working-directory: './infra'
+
+    - name: Download variables file
+      run: aws s3 cp s3://dungtt112-tf-backend-bucket/vars/${{ inputs.environment }}/terraform.yaml .
+      shell: bash
+      working-directory: './infra'
+
+    - name: Terraform Plan
+      run: terraform plan -input=false
+      shell: bash
+      working-directory: './infra'
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve -input=false
+      shell: bash
+      working-directory: './infra'
+
+    - name: Set Outputs
+      id: outputs
+      run: |
+        echo "cluster-name=$(terraform output -json ecs_info | jq -r '.ecs_cluster_1.cluster_name')" >> $GITHUB_OUTPUT
+        echo "frontend=$(terraform output -json ecs_info | jq -c '.ecs_cluster_1.services.service_1')" >> $GITHUB_OUTPUT
+        echo "backend=$(terraform output -json ecs_info | jq -c '.ecs_cluster_1.services.service_2')" >> $GITHUB_OUTPUT
+      shell: bash
+      working-directory: './infra'
+
