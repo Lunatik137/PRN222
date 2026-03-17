@@ -27,11 +27,6 @@ runs:
       shell: bash
       working-directory: './infra'
 
-    - name: Download variables file
-      run: aws s3 cp s3://dungtt112-tf-backend-bucket/vars/${{ inputs.environment }}/terraform.yaml .
-      shell: bash
-      working-directory: './infra'
-
     - name: Terraform Plan
       run: terraform plan -input=false
       shell: bash
