@@ -1,0 +1,841 @@
+################################################################################
+# VPC
+################################################################################
+vpcs:
+  vpc_1:
+    name: "chienpq137-cicd-lab-vpc"
+    cidr: "10.0.0.0/16"
+    enable_ipv6: false
+    instance_tenancy: "default"
+
+    azs: ["ap-southeast-2a", "ap-southeast-2b"]
+    public_subnets: ["10.0.1.0/24", "10.0.2.0/24"]
+    private_subnets: ["10.0.101.0/24", "10.0.102.0/24"]
+    database_subnets: ["10.0.103.0/24", "10.0.104.0/24"]
+
+    enable_nat_gateway: true
+    single_nat_gateway: true
+    one_nat_gateway_per_az: false
+
+    enable_dns_hostnames: true
+    enable_dns_support: true
+
+    tags:
+      Owner: "chienpq137"
+
+################################################################################
+# Security Group
+################################################################################
+sgs:
+  alb_sg:
+    name: "alb-sg"
+    description: "Security group for application load balancer"
+    vpc_key: "vpc_1"
+
+    ingress_cidr_blocks: ["0.0.0.0/0"]
+    ingress_rules: ["http-80-tcp", "https-443-tcp"]
+
+    egress_cidr_blocks: ["0.0.0.0/0"]
+    egress_rules: ["all-all"]
+
+    tags:
+      Owner: "chienpq137"
+
+  ecs_frontend_sg:
+    name: "ecs-frontend-sg"
+    description: "Security group for ECS Frontend Service"
+    vpc_key: "vpc_1"
+
+    egress_cidr_blocks: ["0.0.0.0/0"]
+    egress_rules: ["all-all"]
+
+    tags:
+      Owner: "chienpq137"
+
+  ecs_backend_sg:
+    name: "ecs-backend-sg"
+    description: "Security group for ECS Backend Service"
+    vpc_key: "vpc_1"
+
+    egress_cidr_blocks: ["0.0.0.0/0"]
+    egress_rules: ["all-all"]
+
+    tags:
+      Owner: "chienpq137"
+
+  rds_sg:
+    name: "rds-sg"
+    description: "Security group for RDS Database"
+    vpc_key: "vpc_1"
+
+    egress_cidr_blocks: ["0.0.0.0/0"]
+    egress_rules: ["all-all"]
+
+    tags:
+      Owner: "chienpq137"
+
+sg_rules:
+  rule_1:
+    sg_key: "ecs_frontend_sg"
+    source_sg_key: "alb_sg"
+    type: "ingress"
+    from_port: 80
+    to_port: 80
+    protocol: "tcp"
+    description: "HTTP"
+
+  rule_2:
+    sg_key: "ecs_backend_sg"
+    source_sg_key: "ecs_frontend_sg"
+    type: "ingress"
+    from_port: 80
+    to_port: 80
+    protocol: "tcp"
+    description: "HTTP"
+
+  rule_3:
+    sg_key: "rds_sg"
+    source_sg_key: "ecs_backend_sg"
+    type: "ingress"
+    from_port: 5432
+    to_port: 5432
+    protocol: "tcp"
+    description: "PostgreSQL"
+
+################################################################################
+# Route 53 Zone
+################################################################################
+route53_zones:
+  route53_zone_1:
+    zones:
+      zone_1:
+        domain_name: "juntran.id.vn"
+        comment: "None"
+
+        tags:
+          Name: "juntran.id.vn"
+
+    tags:
+      Owner: "chienpq137"
+
+################################################################################
+# ACM
+################################################################################
+acms:
+  acm_1:
+    zone_key: "route53_zone_1"
+    export: "DISABLED"
+    validation_method: "DNS"
+    key_algorithm: "RSA_2048"
+
+    tags:
+      Owner: "chienpq137"
+
+################################################################################
+# ALB
+################################################################################
+albs:
+  alb_1:
+    load_balancer_type: "application"
+    name: "alb-1"
+    internal: false
+    ip_address_type: "ipv4"
+    vpc_key: "vpc_1"
+    sg_key: "alb_sg"
+    create_security_group: false
+    enable_deletion_protection: false
+
+    listeners:
+      http-https-redirect:
+        port: 80
+        protocol: "HTTP"
+        redirect:
+          port: "443"
+          protocol: "HTTPS"
+          status_code: "HTTP_301"
+
+      https:
+        port: 443
+        protocol: "HTTPS"
+        acm_key: "acm_1"
+        forward:
+          target_group_key: "target_group_1"
+
+    target_groups:
+      target_group_1:
+        target_type: "ip"
+        name: "ecs-frontend-tg"
+        protocol: "HTTP"
+        port: 80
+        ip_address_type: "ipv4"
+        vpc_key: "vpc_1"
+        protocol_version: "HTTP1"
+        create_attachment: false
+
+        health_check:
+          enabled: true
+          protocol: "HTTP"
+          path: "/"
+          port: "traffic-port"
+          healthy_threshold: 5
+          unhealthy_threshold: 2
+          timeout: 5
+          interval: 30
+          matcher: "200"
+
+        tags:
+          Owner: "chienpq137"
+
+    tags:
+      Owner: "chienpq137"
+
+################################################################################
+# Route 53 Record
+################################################################################
+route53_records:
+  route53_record_1:
+    zone_key: "route53_zone_1"
+    records:
+      - alb_key: "alb_1"
+        name: "alb"
+        type: "A"
+        alias:
+          evaluate_target_health: true
+
+################################################################################
+# RDS
+################################################################################
+rds_databases:
+  rds_database_1:
+    # Engine options
+    engine: "postgres"
+    engine_version: "17.4"
+    engine_lifecycle_support: "open-source-rds-extended-support-disabled"
+
+    # Availability and durability
+    multi_az: true
+
+    # Settings
+    identifier: "cicd-lab-db"
+    username: "chienpq137"
+    manage_master_user_password: true
+    master_user_secret_kms_key_id: "alias/aws/secretsmanager"
+
+    # Instance configuration
+    instance_class: "db.t3.micro"
+
+    # Storage
+    storage_type: "gp3"
+    allocated_storage: 20
+    iops: null
+    storage_throughput: null
+    max_allocated_storage: 220
+    dedicated_log_volume: false
+
+    # Subnet groups
+    create_db_subnet_group: true
+    db_subnet_group_name: "cicd-lab-db-subnet-group"
+    db_subnet_group_description: "Subnet group for database"
+    vpc_key: "vpc_1"
+
+    # Connectivity
+    network_type: "IPV4"
+    publicly_accessible: false
+    sg_key: "rds_sg"
+    ca_cert_identifier: "rds-ca-rsa2048-g1"
+    port: 5432
+
+    # Database authentication
+    iam_database_authentication_enabled: false
+
+    # Monitoring role
+    create_monitoring_role: true
+    monitoring_role_name: "cicd-lab-db-monitoring-role"
+    monitoring_role_description: "IAM role for monitoring database"
+
+    # Monitoring
+    performance_insights_enabled: true
+    performance_insights_retention_period: 7
+    performance_insights_kms_key_id: "alias/aws/rds"
+    monitoring_interval: 60
+    create_cloudwatch_log_group: true
+    enabled_cloudwatch_logs_exports: ["postgresql", "upgrade"]
+
+    # Database options
+    db_name: "cicdLabDb"
+    family: "postgres17"
+    major_engine_version: "17"
+
+    # Backup
+    backup_retention_period: 7
+    backup_window: "03:00-04:00"
+    copy_tags_to_snapshot: true
+    storage_encrypted: true
+    kms_key_id: "alias/aws/rds"
+
+    # Maintenance
+    auto_minor_version_upgrade: true
+    maintenance_window: "Mon:04:00-Mon:05:00"
+    deletion_protection: false
+
+    # Tags
+    tags:
+      Owner: "chienpq137"
+
+################################################################################
+# ECR
+################################################################################
+ecr_repositories:
+  ecr_repository_1:
+    repository_name: "cicd-lab-frontend-repo"
+    repository_image_tag_mutability: "MUTABLE"
+    repository_encryption_type: "AES256"
+    repository_image_scan_on_push: true
+    repository_lifecycle_policy:
+      rules:
+        - rulePriority: 1
+          description: "Keep last 30 images"
+          selection:
+            tagStatus: "tagged"
+            tagPrefixList: ["prod-", "staging-", "dev-"]
+            countType: "imageCountMoreThan"
+            countNumber: 5
+          action:
+            type: "expire"
+
+    repository_force_delete: true
+
+    tags:
+      Owner: "chienpq137"
+
+  ecr_repository_2:
+    repository_name: "cicd-lab-backend-repo"
+    repository_image_tag_mutability: "MUTABLE"
+    repository_encryption_type: "AES256"
+    repository_image_scan_on_push: true
+    repository_lifecycle_policy:
+      rules:
+        - rulePriority: 1
+          description: "Keep last 30 images"
+          selection:
+            tagStatus: "tagged"
+            tagPrefixList: ["prod-", "staging-", "dev-"]
+            countType: "imageCountMoreThan"
+            countNumber: 5
+          action:
+            type: "expire"
+
+    repository_force_delete: true
+
+    tags:
+      Owner: "chienpq137"
+
+################################################################################
+# ECS
+################################################################################
+namespaces:
+  ecs_cluster_1:
+    name: "cicd-lab-namespace"
+    description: "Service discovery namespace for cicd-lab"
+    tags:
+      Owner: "chienpq137"
+
+ecs_clusters:
+  ecs_cluster_1:
+    kms_key_id: "alias/aws/eks"
+    cluster_name: "ecs-cluster-1"
+
+    default_capacity_provider_strategy:
+      FARGATE:
+        weight: 1
+        base: 1
+
+    cluster_setting:
+      - name: "containerInsights"
+        value: "enabled"
+
+    cluster_configuration:
+      execute_command_configuration:
+        log_configuration:
+          cloud_watch_encryption_enabled: true
+          cloud_watch_log_group_name: "/aws/ecs/exec"
+        logging: "OVERRIDE"
+
+    cluster_tags:
+      Owner: "chienpq137"
+
+    services:
+      service_1:
+        # Task definition family
+        family: "cicd-lab-frontend"
+
+        # Launch type
+        requires_compatibilities: ["FARGATE"]
+
+        # OS, Architecture, Network mode
+        runtime_platform:
+          operating_system_family: "LINUX"
+          cpu_architecture: "X86_64"
+        network_mode: "awsvpc"
+
+        # Task size
+        cpu: 1024
+        memory: 4096
+
+        # Task roles
+        tasks_iam_role_name: "cicd-lab-frontend-tasks"
+        tasks_iam_role_description: "Tasks IAM role for cicd-lab"
+        tasks_iam_role_policies: {}
+        tasks_iam_role_tags:
+          Owner: "chienpq137"
+
+        # Task execution role
+        rds_key: null
+
+        # Fault injection
+        enable_fault_injection: false
+
+        container_definitions:
+          container_1:
+            # Container details
+            name: "container-1"
+            essential: true
+            ecr_key: "ecr_repository_1"
+
+            # Private registry
+            # repositoryCredentials:
+            #   credentialsParameter: null
+
+            # Port mappings
+            portMappings:
+              - containerPort: 80
+                protocol: "tcp"
+                name: "ecs-frontend-port"
+                appProtocol: "http"
+
+            # Read only root filesystem
+            readonlyRootFilesystem: false
+
+            # Resource allocation limits
+            cpu: 1024
+            memory: 4096
+            memoryReservation: 2048
+
+            # Environment variables
+            connect_db: false
+            secrets: []
+            environment:
+              - name: "APP_API_HOST"
+                value: "ecs-backend"
+              - name: "APP_API_PORT"
+                value: "5000"
+            environmentFiles: []
+
+            # Log collection
+            logConfiguration:
+              logDriver: "awslogs"
+              options:
+                "awslogs-group": "/ecs/"
+                "awslogs-region": "ap-southeast-2"
+                "awslogs-stream-prefix": "ecs"
+                "awslogs-create-group": "true"
+
+            # Restart policy
+            restartPolicy:
+              enabled: false
+              ignoredExitCodes: []
+              restartAttemptPeriod: 300
+
+            # HealthCheck
+            # healthCheck:
+            #   command: []
+            #   interval: 30
+            #   timeout: 5
+            #   startPeriod: 0
+            #   retries: 3
+
+            # Container timeouts
+            startTimeout: null
+            stopTimeout: null
+
+            # Docker configuration
+            entryPoint: []
+            command: []
+            workingDirectory: null
+
+            # Ulimits
+            ulimits:
+              - name: null
+                softLimit: null
+                hardLimit: null
+
+            # Docker labels
+            dockerLabels: {}
+
+            # Container mount points
+            mountPoints:
+              []
+              # - sourceVolume: "efs-volume"
+              #   containerPath: "/app/data"
+              #   readOnly: false
+
+            # Volumes from
+            volumesFrom: []
+
+        # Ephemeral storage
+        ephemeral_storage:
+          size_in_gib: 21
+
+        # Volume
+        volume:
+          {}
+          # volume_1: {
+          #   name               : "efs-storage"
+          #   configure_at_launch: false
+
+          #   efs_volume_configuration: {
+          #     file_system_id: "fs-12345678"
+          #     root_directory: "/"
+
+          #     authorization_config: {
+          #       access_point_id: "fsap-12345678"
+          #       iam            : "ENABLED"
+          #     }
+
+          #     transit_encryption     : "ENABLED"
+          #     transit_encryption_port: 2049
+          #   }
+          # }
+
+        # Task definition tags
+        task_tags:
+          Owner: "chienpq137"
+
+        # Service name
+        name: "cicd-lab-frontend"
+
+        # Compute configuration
+        capacity_provider_strategy:
+          capacity_provider_1:
+            capacity_provider: "FARGATE"
+            base: 1
+            weight: 1
+        platform_version: "LATEST"
+        enable_execute_command: true
+
+        # Deployment configuration
+        scheduling_strategy: "REPLICA"
+        desired_count: 1
+        availability_zone_rebalancing: "ENABLED"
+        health_check_grace_period_seconds: 0
+
+        # Deployment options
+        deployment_controller:
+          type: "ECS"
+        deployment_configuration:
+          strategy: "ROLLING"
+        deployment_minimum_healthy_percent: 100
+        deployment_maximum_percent: 200
+
+        # Deployment failure detection
+        deployment_circuit_breaker:
+          enable: true
+          rollback: true
+        # alarms = {
+        #   enable      = false
+        #   alarm_names = []
+        #   rollback    = false
+        # }
+
+        # Networking
+        vpc_key: "vpc_1"
+        sg_key: "ecs_frontend_sg"
+        create_security_group: false
+        assign_public_ip: false
+
+        # Service Connect
+        service_connect_configuration:
+          enabled: true
+          # service:
+          #   - port_name:      "ecs-frontend-port"
+          #     discovery_name: "ecs-frontend"
+          #     client_alias:
+          #       dns_name: "ecs-frontend"
+          #       port:     4000
+          #     timeout:
+          #       idle_timeout_seconds: 3600
+          #     log_configuration:
+          #       log_driver: "awslogs"
+          #       options:
+          #         awslogs-group:         "/ecs/service-connect"
+          #         awslogs-region:        "ap-southeast-2"
+          #         awslogs-stream-prefix: "ecs"
+          #         awslogs-create-group:  "true"
+
+        # Load balancing
+        connect_lb: true
+        load_balancer:
+          alb_1:
+            container_name: "container-1"
+            container_port: 80
+            alb_key: "alb_1"
+            target_group_key: "target_group_1"
+
+        # Service auto scaling
+        enable_autoscaling: true
+        autoscaling_min_capacity: 1
+        autoscaling_max_capacity: 4
+        autoscaling_policies:
+          cpu:
+            policy_type: "TargetTrackingScaling"
+            name: "cpu-autoscaling"
+            target_tracking_scaling_policy_configuration:
+              predefined_metric_specification:
+                predefined_metric_type: "ECSServiceAverageCPUUtilization"
+              target_value: 70
+              scale_out_cooldown: 300
+              scale_in_cooldown: 300
+              disable_scale_in: false
+
+        service_tags:
+          Owner: "chienpq137"
+
+        tags:
+          Owner: "chienpq137"
+
+      service_2:
+        # Task definition family
+        family: "cicd-lab-backend"
+
+        # Launch type
+        requires_compatibilities: ["FARGATE"]
+
+        # OS, Architecture, Network mode
+        runtime_platform:
+          operating_system_family: "LINUX"
+          cpu_architecture: "X86_64"
+        network_mode: "awsvpc"
+
+        # Task size
+        cpu: 1024
+        memory: 4096
+
+        # Task roles
+        tasks_iam_role_name: "cicd-lab-backend-tasks"
+        tasks_iam_role_description: "Tasks IAM role for cicd-lab"
+        tasks_iam_role_policies:
+          RDSFullAccess: "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
+        tasks_iam_role_tags:
+          Owner: "chienpq137"
+
+        # Task execution role
+        rds_key: "rds_database_1"
+
+        # Fault injection
+        enable_fault_injection: false
+
+        container_definitions:
+          container_1:
+            # Container details
+            name: "container-1"
+            essential: true
+            ecr_key: "ecr_repository_2"
+
+            # Private registry
+            # repositoryCredentials:
+            #   credentialsParameter: null
+
+            # Port mappings
+            portMappings:
+              - containerPort: 80
+                protocol: "tcp"
+                name: "ecs-backend-port"
+                appProtocol: "http"
+
+            # Read only root filesystem
+            readonlyRootFilesystem: false
+
+            # Resource allocation limits
+            cpu: 1024
+            memory: 4096
+            memoryReservation: 2048
+
+            # Environment variables
+            connect_db: true
+            secrets: []
+            environment: []
+            environmentFiles: []
+
+            # Log collection
+            logConfiguration:
+              logDriver: "awslogs"
+              options:
+                "awslogs-group": "/ecs/"
+                "awslogs-region": "ap-southeast-2"
+                "awslogs-stream-prefix": "ecs"
+                "awslogs-create-group": "true"
+
+            # Restart policy
+            restartPolicy:
+              enabled: false
+              ignoredExitCodes: []
+              restartAttemptPeriod: 300
+
+            # HealthCheck
+            # healthCheck:
+            #   command:     []
+            #   interval:    30
+            #   timeout:     5
+            #   startPeriod: 0
+            #   retries:     3
+
+            # Container timeouts
+            startTimeout: null
+            stopTimeout: null
+
+            # Docker configuration
+            entryPoint: []
+            command: []
+            workingDirectory: null
+
+            # Ulimits
+            ulimits:
+              - name: null
+                softLimit: null
+                hardLimit: null
+
+            # Docker labels
+            dockerLabels: {}
+
+            # Container mount points
+            mountPoints:
+              []
+              # - sourceVolume:  "efs-volume"
+              #   containerPath: "/app/data"
+              #   readOnly:      false
+
+            # Volumes from
+            volumesFrom: []
+
+        # Ephemeral storage
+        ephemeral_storage:
+          size_in_gib: 21
+
+        # Volume
+        volume:
+          {}
+          # volume_1 = {
+          #   name                = "efs-storage"
+          #   configure_at_launch = false
+
+          #   efs_volume_configuration = {
+          #     file_system_id = "fs-12345678"
+          #     root_directory = "/"
+
+          #     authorization_config = {
+          #       access_point_id = "fsap-12345678"
+          #       iam             = "ENABLED"
+          #     }
+
+          #     transit_encryption      = "ENABLED"
+          #     transit_encryption_port = 2049
+          #   }
+          # }
+
+        # Task definition tags
+        task_tags:
+          Owner: "chienpq137"
+
+        # Service name
+        name: "cicd-lab-backend"
+
+        # Compute configuration
+        capacity_provider_strategy:
+          capacity_provider_1:
+            capacity_provider: "FARGATE"
+            base: 1
+            weight: 1
+        platform_version: "LATEST"
+        enable_execute_command: true
+
+        # Deployment configuration
+        scheduling_strategy: "REPLICA"
+        desired_count: 1
+        availability_zone_rebalancing: "ENABLED"
+        health_check_grace_period_seconds: 0
+
+        # Deployment options
+        deployment_controller:
+          type: "ECS"
+        deployment_configuration:
+          strategy: "ROLLING"
+        deployment_minimum_healthy_percent: 100
+        deployment_maximum_percent: 200
+
+        # Deployment failure detection
+        deployment_circuit_breaker:
+          enable: true
+          rollback: true
+        # alarms:
+        #   enable:       false
+        #   alarm_names:  []
+        #   rollback:     false
+
+        # Networking
+        vpc_key: "vpc_1"
+        sg_key: "ecs_backend_sg"
+        create_security_group: false
+        assign_public_ip: false
+
+        # Service Connect
+        service_connect_configuration:
+          enabled: true
+          service:
+            - port_name: "ecs-backend-port"
+              discovery_name: "ecs-backend"
+              client_alias:
+                dns_name: "ecs-backend"
+                port: 5000
+              timeout:
+                idle_timeout_seconds: 3600
+              log_configuration:
+                log_driver: "awslogs"
+                options:
+                  "awslogs-group": "/ecs/service-connect"
+                  "awslogs-region": "ap-southeast-2"
+                  "awslogs-stream-prefix": "ecs"
+                  "awslogs-create-group": "true"
+
+        # Load balancing
+        connect_lb: false
+        load_balancer:
+          alb_1:
+            container_name: "container-1"
+            container_port: 80
+            alb_key: "alb_1"
+            target_group_key: "target_group_1"
+
+        # Service auto scaling
+        enable_autoscaling: true
+        autoscaling_min_capacity: 1
+        autoscaling_max_capacity: 4
+        autoscaling_policies:
+          cpu:
+            policy_type: "TargetTrackingScaling"
+            name: "cpu-autoscaling"
+            target_tracking_scaling_policy_configuration:
+              predefined_metric_specification:
+                predefined_metric_type: "ECSServiceAverageCPUUtilization"
+              target_value: 70
+              scale_out_cooldown: 300
+              scale_in_cooldown: 300
+              disable_scale_in: false
+
+        service_tags:
+          Owner: "chienpq137"
+
+        tags:
+          Owner: "chienpq137"
+
+    tags:
+      Owner: "chienpq137"
