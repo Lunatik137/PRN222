@@ -1,0 +1,17 @@
+name: Lint Code Base
+description: "A GitHub Action to lint code using Super Linter"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Lint Code Base
+      uses: github/super-linter@v4
+      env:
+        VALIDATE_ALL_CODEBASE: false
+        DEFAULT_BRANCH: "main"
+        GITHUB_TOKEN: $GITHUB_TOKEN

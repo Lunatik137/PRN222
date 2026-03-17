@@ -1,0 +1,17 @@
+name: 'Test Frontend Action'
+description: 'Runs frontend tests using Node.js'
+
+runs:
+  using: 'composite'
+  steps:
+    - run: npm ci
+      shell: bash
+      working-directory: './frontend'
+
+    - run: npm run build --if-present
+      shell: bash
+      working-directory: './frontend'
+
+    - run: npm test
+      shell: bash
+      working-directory: './frontend'

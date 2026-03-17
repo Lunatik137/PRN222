@@ -1,0 +1,36 @@
+name: CI Pipeline
+description: 'CI Pipeline for building, testing, and pushing Docker images to ECR'
+
+inputs:
+  ecr-repo:
+    description: 'ECR Repository URL'
+    required: true
+  working-directory:
+    description: 'Working directory'
+    required: false
+
+outputs:
+  image:
+    description: 'Docker image with tag'
+    value: ${{ steps.image.outputs.image }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build, tag image
+      id: image
+      shell: bash
+      run: |
+        docker build -t ${{ inputs.ecr-repo }}:latest .
+        echo "image=${{ inputs.ecr-repo }}:latest" >> $GITHUB_OUTPUT
+      working-directory: ${{ inputs.working-directory }}
+
+    - name: Test image
+      uses: ./.github/actions/trivy
+      with:
+        image-ref: ${{ steps.image.outputs.image}}
+
+    - name: Push image to Amazon ECR
+      shell: bash
+      run: docker push ${{ steps.image.outputs.image }}
+        
