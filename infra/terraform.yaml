@@ -8,7 +8,7 @@ vpcs:
     enable_ipv6: false
     instance_tenancy: "default"
 
-    azs: ["ap-southeast-2a", "ap-southeast-2b"]
+    azs: ["us-east-1a", "us-east-1b"]
     public_subnets: ["10.0.1.0/24", "10.0.2.0/24"]
     private_subnets: ["10.0.101.0/24", "10.0.102.0/24"]
     database_subnets: ["10.0.103.0/24", "10.0.104.0/24"]
@@ -390,7 +390,7 @@ ecs_clusters:
               logDriver: "awslogs"
               options:
                 "awslogs-group": "/ecs/"
-                "awslogs-region": "ap-southeast-2"
+                "awslogs-region": "us-east-1"
                 "awslogs-stream-prefix": "ecs"
                 "awslogs-create-group": "true"
 
@@ -521,7 +521,7 @@ ecs_clusters:
                 log_driver: "awslogs"
                 options:
                   "awslogs-group": "/ecs/service-connect"
-                  "awslogs-region": "ap-southeast-2"
+                  "awslogs-region": "us-east-1"
                   "awslogs-stream-prefix": "ecs"
                   "awslogs-create-group": "true"
 

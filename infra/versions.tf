@@ -11,11 +11,11 @@ terraform {
   backend "s3" {
     bucket       = "chienpq137-863700943489-us-east-1-an"
     key          = "state/dev/terraform.tfstate"
-    region       = "ap-southeast-2"
+    region       = "us-east-1"
     use_lockfile = false
   }
 }
 
 provider "aws" {
-  region = "ap-southeast-2"
+  region = "us-east-1"
 }
