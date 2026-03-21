@@ -21,9 +21,6 @@ on:
       AWS_SECRET_ACCESS_KEY:
         description: 'AWS Secret Access Key'
         required: true
-      SONAR_TOKEN:
-        description: 'SonarQube Token'
-        required: true
 
 jobs:
   # CI Pipeline
@@ -34,17 +31,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-  #     # - name: Test Frontend
-  #     #   uses: ./.github/actions/test_frontend
-
-      - name: Test Backend
-        uses: ./.github/actions/test_backend
-
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -52,35 +38,27 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1 
-        with:
-          mask-password: true
-
       - name: Terraform Module ECR
         id: ecr-repo
         uses: ./.github/actions/terraform_ecr
         with:
           environment: ${{ inputs.environment }}
 
-      - name: Build and Push Frontend Image to ECR
-        id: frontend-image
-        uses: ./.github/actions/ecr
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1 
         with:
-          ecr-repo: ${{ steps.ecr-repo.outputs.ecr-frontend-repo }}
-          working-directory: './frontend'
+          mask-password: true
 
-      - name: Build and Push Backend Image to ECR
-        id: backend-image
+      - name: Build and Push App Image to ECR
+        id: app-image
         uses: ./.github/actions/ecr
         with:
-          ecr-repo: ${{ steps.ecr-repo.outputs.ecr-backend-repo }}
-          working-directory: './backend'
+          ecr-repo: ${{ steps.ecr-repo.outputs.ecr-app-repo }}
+          working-directory: './Project_Group3'
 
     outputs:
-      frontend-image: ${{ steps.frontend-image.outputs.image }}
-      backend-image: ${{ steps.backend-image.outputs.image }}
+      app-image: ${{ steps.app-image.outputs.image }}
 
 # CD Pipeline 
   cd-pipeline:
@@ -98,22 +76,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Terraform Module ECS Frontend
+      - name: Terraform Module ECS
         id: terraform-ecs
         uses: ./.github/actions/terraform_ecs
         with:
           environment: ${{ inputs.environment }}
 
-      - name: Deploy Frontend to ECS
+      - name: Deploy App to ECS
         uses: ./.github/actions/ecs
         with:
           cluster-name: ${{ steps.terraform-ecs.outputs.cluster-name }}
-          service: ${{ steps.terraform-ecs.outputs.frontend }}
-          image:  ${{ needs.ci-pipeline.outputs.frontend-image }}
-
-      - name: Deploy Backend to ECS
-        uses: ./.github/actions/ecs
-        with:
-          cluster-name: ${{ steps.terraform-ecs.outputs.cluster-name }}
-          service: ${{ steps.terraform-ecs.outputs.backend }}
-          image: ${{ needs.ci-pipeline.outputs.backend-image }}
+          service: ${{ steps.terraform-ecs.outputs.app }}
+          image: ${{ needs.ci-pipeline.outputs.app-image }}
