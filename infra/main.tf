@@ -68,20 +68,6 @@ resource "aws_security_group_rule" "this" {
 }
 
 ################################################################################
-# Route 53 Zone
-################################################################################
-module "route53_zones" {
-  source = "terraform-aws-modules/route53/aws//modules/zones"
-
-  for_each = local.var.route53_zones
-
-  create = try(each.value.create, true)
-
-  zones = try(each.value.zones, {})
-  tags  = try(merge(each.value.tags, var.environment_tags), {})
-}
-
-################################################################################
 # ACM
 ################################################################################
 module "acm" {
