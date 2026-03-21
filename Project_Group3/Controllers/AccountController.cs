@@ -3,9 +3,14 @@ using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
 
 namespace Project_Group3.Controllers;
-
 public class AccountController(IUserRepository userRepository) : Controller
 {
+    private static readonly HashSet<string> AdminRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "superadmin",
+        "monitor"
+    };
+
     [HttpGet]
     public IActionResult Login()
     {
@@ -28,15 +33,27 @@ public class AccountController(IUserRepository userRepository) : Controller
                 model.Password,
                 CancellationToken.None
             );
-
             if (user is null)
             {
                 ModelState.AddModelError(string.Empty, "Username or password is not correct.");
                 return View(model);
             }
 
+            if (user.isLocked)
+            {
+                ModelState.AddModelError(string.Empty, "Your account has been locked.");
+                return View(model);
+            }
+
+            if (!AdminRoles.Contains(user.role ?? string.Empty))
+            {
+                ModelState.AddModelError(string.Empty, "You do not have permission to access the admin portal.");
+                return View(model);
+            }
+
             HttpContext.Session.SetInt32("UserId", user.id);
             HttpContext.Session.SetString("Username", user.username ?? model.Username);
+            HttpContext.Session.SetString("Role", user.role ?? string.Empty);
 
             TempData["LoginMessage"] = $"Hello, {user.username}!";
             return RedirectToAction("Dashboard", "Admin");

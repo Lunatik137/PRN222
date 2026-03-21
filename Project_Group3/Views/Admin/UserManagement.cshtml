@@ -1,0 +1,208 @@
+﻿@model Project_Group3.Models.UserManagementViewModel
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "User Management";
+    var username = Context.Session.GetString("Username") ?? "Admin";
+}
+
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="_AdminSidebar" />
+
+        <main class="dashboard-content section-page">
+            <div class="user-management-page">
+                <div class="section-placeholder mb-3">
+                    <h1>User Management</h1>
+                    <p>Hello @username. You can review accounts, lock or unlock users, and monitor RiskScore to keep the system safe.</p>
+
+                </div>
+
+                @if (TempData["ActionSuccess"] is string ok)
+                {
+                    <div class="alert alert-success">@ok</div>
+                }
+                @if (TempData["ActionError"] is string err)
+                {
+                    <div class="alert alert-danger">@err</div>
+                }
+
+                <form method="get" asp-action="UserManagement" class="user-filter card p-3 mb-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label">Keyword</label>
+                            <input class="form-control" type="text" name="keyword" value="@Model.Keyword" placeholder="Username or Email" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status">
+                               
+                                <option value="" selected="@(string.IsNullOrEmpty(Model.Status))">All</option>
+                                <option value="pending" selected="@(Model.Status == "pending")">Pending</option>
+                                <option value="approved" selected="@(Model.Status == "approved")">Approved</option>
+                                <option value="locked" selected="@(Model.Status == "locked")">Locked</option>
+                                <option value="rejected" selected="@(Model.Status == "rejected")">Rejected</option>
+                                <option value="risky" selected="@(Model.Status == "risky")">High Risk</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            
+                            <label class="form-label">Page Size</label>
+                            <select class="form-select" name="pageSize">
+                                @foreach (var size in new[] { 10, 20, 50 })
+                                {
+                                    <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <button class="btn btn-indigo" type="submit">Filter</button>
+
+                        </div>
+                    </div>
+                    <input type="hidden" name="page" value="1" />
+                </form>
+
+                <div class="card table-card p-3 mb-3">
+                    <div class="table-responsive">
+                        <table class="table align-middle admin-user-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Status</th>
+                                    <th>Risk</th>␊
+                                    <th>Last Login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Users.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">No users match the current filter.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var u in Model.Users)
+                                    {
+                                        var riskLevel = string.IsNullOrWhiteSpace(u.RiskLevel) ? "Unknown" : u.RiskLevel;
+                                        var riskScore = u.RiskScore ?? 0;
+                                        var statusText = u.isLocked ? "Locked" : (u.isApproved ? "Approved" : "Pending");
+                                        var statusClass = u.isLocked ? "danger" : (u.isApproved ? "success" : "warning");
+
+                                        <tr>
+                                            <td>
+                                                <div><strong>@u.username</strong></div>
+                                                <small class="text-muted">@u.email</small>
+                                            </td>
+                                            <td><span class="tag @statusClass">@statusText</span></td>
+                                            <td>
+                                                <div class="risk-block">
+                                                    <strong>@riskScore</strong>
+                                                    <span class="risk-level">@riskLevel</span>
+                                                </div>
+                                            </td>
+                                            <td>@(u.lastLoginTimestamp?.ToString("yyyy-MM-dd HH:mm") ?? "N/A")</td>
+                                            <td>
+                                                <div class="action-buttons user-actions">
+                                                    @if (!u.isApproved && !u.isLocked)
+                                                    {
+                                                        <form method="post" asp-action="ApproveUser">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@u.id" />
+                                                            <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                                            <input type="hidden" name="status" value="@Model.Status" />
+                                                            <input type="hidden" name="page" value="@Model.Page" />
+                                                            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                                            <button type="submit" class="btn btn-sm btn-indigo">Approve</button>
+                                                        </form>
+
+                                                        <form method="post" asp-action="RejectUser" class="d-flex gap-2">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="Id" value="@u.id" />
+                                                            <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                            <input type="hidden" name="Status" value="@Model.Status" />
+                                                            <input type="hidden" name="Page" value="@Model.Page" />
+                                                            <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                                                            <input class="form-control form-control-sm" name="Reason" placeholder="Rejection reason" required />                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                                        </form>
+                                                    }
+                                                    else if (u.isLocked)
+                                                    {
+                                                        <form method="post" asp-action="UnlockUser">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@u.id" />
+                                                            <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                                            <input type="hidden" name="status" value="@Model.Status" />
+                                                            <input type="hidden" name="page" value="@Model.Page" />
+                                                            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-indigo">Unlock</button>
+                                                        </form>
+                                                        <small class="text-muted">@u.lockedReason</small>
+                                                    }
+                                                    else
+                                                    {
+                                                        <form method="post" asp-action="LockUser" class="d-flex gap-2">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="Id" value="@u.id" />
+                                                            <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                            <input type="hidden" name="Status" value="@Model.Status" />
+                                                            <input type="hidden" name="Page" value="@Model.Page" />
+                                                            <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                                                            <input class="form-control form-control-sm" name="Reason" placeholder="Lock reason" required />                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Lock</button>
+                                                        </form>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pager d-flex justify-content-between align-items-center mt-3">
+                        <span class="text-muted">Total: @Model.Total users</span>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-secondary @(Model.Page <= 1 ? "disabled" : string.Empty)"
+                               asp-action="UserManagement"
+                               asp-route-keyword="@Model.Keyword"
+                               asp-route-status="@Model.Status"
+                               asp-route-page="@(Model.Page - 1)"
+                               asp-route-pageSize="@Model.PageSize">Prev</a>
+                            <span class="align-self-center">Page @Model.Page / @Math.Max(Model.TotalPages, 1)</span>
+                            <a class="btn btn-sm btn-outline-secondary @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)"
+                               asp-action="UserManagement"
+                               asp-route-keyword="@Model.Keyword"
+                               asp-route-status="@Model.Status"
+                               asp-route-page="@(Model.Page + 1)"
+                               asp-route-pageSize="@Model.PageSize">Next</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-3">
+                    <h2 class="h5">Admin Activity Log</h2>
+                    @if (Model.ActionLogs.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No actions recorded in the current session.</p>
+                    }
+                    else
+                    {
+                        <ul class="activity-list mb-0">
+                            @foreach (var log in Model.ActionLogs)
+                            {
+                                <li>
+                                    <span class="event-dot"></span>
+                                    <strong>@log.Action</strong> - @log.Target by @log.Username
+                                    <small>@log.AtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</small>
+                                    <div class="text-muted">@log.Details</div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
