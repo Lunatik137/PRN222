@@ -7,12 +7,9 @@ inputs:
     required: true
 
 outputs:
-  ecr-frontend-repo:
-    description: 'ECR Frontend Repository URL'
-    value: ${{ steps.outputs.outputs.ecr-frontend-repo }}
-  ecr-backend-repo:
-    description: 'ECR Backend Repository URL'
-    value: ${{ steps.outputs.outputs.ecr-backend-repo }}
+  ecr-app-repo:
+    description: 'ECR App Repository URL'
+    value: ${{ steps.outputs.outputs.ecr-app-repo }}
 
 runs:
   using: "composite"
@@ -41,8 +38,7 @@ runs:
     - name: Set Outputs
       id: outputs
       run: |
-        echo "ecr-frontend-repo=$(terraform output -json ecr_repo | jq -r .ecr_repository_1)" >> $GITHUB_OUTPUT
-        echo "ecr-backend-repo=$(terraform output -json ecr_repo | jq -r .ecr_repository_2)" >> $GITHUB_OUTPUT
+        echo "ecr-app-repo=$(terraform output -json ecr_repo | jq -r .ecr_repository_1)" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: './infra'
 

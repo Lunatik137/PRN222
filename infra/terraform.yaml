@@ -41,20 +41,9 @@ sgs:
     tags:
       Owner: "chienpq137"
 
-  ecs_frontend_sg:
-    name: "ecs-frontend-sg"
-    description: "Security group for ECS Frontend Service"
-    vpc_key: "vpc_1"
-
-    egress_cidr_blocks: ["0.0.0.0/0"]
-    egress_rules: ["all-all"]
-
-    tags:
-      Owner: "chienpq137"
-
-  ecs_backend_sg:
-    name: "ecs-backend-sg"
-    description: "Security group for ECS Backend Service"
+  ecs_app_sg:
+    name: "ecs-app-sg"
+    description: "Security group for ECS App Service"
     vpc_key: "vpc_1"
 
     egress_cidr_blocks: ["0.0.0.0/0"]
@@ -76,31 +65,22 @@ sgs:
 
 sg_rules:
   rule_1:
-    sg_key: "ecs_frontend_sg"
+    sg_key: "ecs_app_sg"
     source_sg_key: "alb_sg"
     type: "ingress"
     from_port: 80
     to_port: 80
     protocol: "tcp"
-    description: "HTTP"
+    description: "HTTP from ALB"
 
   rule_2:
-    sg_key: "ecs_backend_sg"
-    source_sg_key: "ecs_frontend_sg"
-    type: "ingress"
-    from_port: 80
-    to_port: 80
-    protocol: "tcp"
-    description: "HTTP"
-
-  rule_3:
     sg_key: "rds_sg"
-    source_sg_key: "ecs_backend_sg"
+    source_sg_key: "ecs_app_sg"
     type: "ingress"
-    from_port: 5432
-    to_port: 5432
+    from_port: 1433
+    to_port: 1433
     protocol: "tcp"
-    description: "PostgreSQL"
+    description: "SQL Server"
 
 ################################################################################
 # Route 53 Zone
@@ -109,11 +89,11 @@ route53_zones:
   route53_zone_1:
     zones:
       zone_1:
-        domain_name: "juntran.id.vn"
+        domain_name: "lunatik137.id.vn"
         comment: "None"
 
         tags:
-          Name: "juntran.id.vn"
+          Name: "lunatik137.id.vn"
 
     tags:
       Owner: "chienpq137"
@@ -164,7 +144,7 @@ albs:
     target_groups:
       target_group_1:
         target_type: "ip"
-        name: "ecs-frontend-tg"
+        name: "ecs-app-tg"
         protocol: "HTTP"
         port: 80
         ip_address_type: "ipv4"
@@ -208,12 +188,11 @@ route53_records:
 rds_databases:
   rds_database_1:
     # Engine options
-    engine: "postgres"
-    engine_version: "17.4"
-    engine_lifecycle_support: "open-source-rds-extended-support-disabled"
+    engine: "sqlserver-ex"
+    engine_version: "15.00.4236.7.v1"
 
     # Availability and durability
-    multi_az: true
+    multi_az: false
 
     # Settings
     identifier: "cicd-lab-db"
@@ -240,10 +219,10 @@ rds_databases:
 
     # Connectivity
     network_type: "IPV4"
-    publicly_accessible: false
+    publicly_accessible: true
     sg_key: "rds_sg"
     ca_cert_identifier: "rds-ca-rsa2048-g1"
-    port: 5432
+    port: 1433
 
     # Database authentication
     iam_database_authentication_enabled: false
@@ -259,12 +238,11 @@ rds_databases:
     performance_insights_kms_key_id: "alias/aws/rds"
     monitoring_interval: 60
     create_cloudwatch_log_group: true
-    enabled_cloudwatch_logs_exports: ["postgresql", "upgrade"]
+    enabled_cloudwatch_logs_exports: ["error", "agent"]
 
     # Database options
-    db_name: "cicdLabDb"
-    family: "postgres17"
-    major_engine_version: "17"
+    family: "sqlserver-ex-15.0"
+    major_engine_version: "15.00"
 
     # Backup
     backup_retention_period: 7
@@ -286,30 +264,9 @@ rds_databases:
 # ECR
 ################################################################################
 ecr_repositories:
+
   ecr_repository_1:
-    repository_name: "cicd-lab-frontend-repo"
-    repository_image_tag_mutability: "MUTABLE"
-    repository_encryption_type: "AES256"
-    repository_image_scan_on_push: true
-    repository_lifecycle_policy:
-      rules:
-        - rulePriority: 1
-          description: "Keep last 30 images"
-          selection:
-            tagStatus: "tagged"
-            tagPrefixList: ["prod-", "staging-", "dev-"]
-            countType: "imageCountMoreThan"
-            countNumber: 5
-          action:
-            type: "expire"
-
-    repository_force_delete: true
-
-    tags:
-      Owner: "chienpq137"
-
-  ecr_repository_2:
-    repository_name: "cicd-lab-backend-repo"
+    repository_name: "cicd-lab-app-repo"
     repository_image_tag_mutability: "MUTABLE"
     repository_encryption_type: "AES256"
     repository_image_scan_on_push: true
@@ -367,7 +324,7 @@ ecs_clusters:
     services:
       service_1:
         # Task definition family
-        family: "cicd-lab-frontend"
+        family: "cicd-lab-app"
 
         # Launch type
         requires_compatibilities: ["FARGATE"]
@@ -383,14 +340,15 @@ ecs_clusters:
         memory: 4096
 
         # Task roles
-        tasks_iam_role_name: "cicd-lab-frontend-tasks"
+        tasks_iam_role_name: "cicd-lab-app-tasks"
         tasks_iam_role_description: "Tasks IAM role for cicd-lab"
-        tasks_iam_role_policies: {}
+        tasks_iam_role_policies:
+          RDSFullAccess: "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
         tasks_iam_role_tags:
           Owner: "chienpq137"
 
         # Task execution role
-        rds_key: null
+        rds_key: "rds_database_1"
 
         # Fault injection
         enable_fault_injection: false
@@ -410,246 +368,7 @@ ecs_clusters:
             portMappings:
               - containerPort: 80
                 protocol: "tcp"
-                name: "ecs-frontend-port"
-                appProtocol: "http"
-
-            # Read only root filesystem
-            readonlyRootFilesystem: false
-
-            # Resource allocation limits
-            cpu: 1024
-            memory: 4096
-            memoryReservation: 2048
-
-            # Environment variables
-            connect_db: false
-            secrets: []
-            environment:
-              - name: "APP_API_HOST"
-                value: "ecs-backend"
-              - name: "APP_API_PORT"
-                value: "5000"
-            environmentFiles: []
-
-            # Log collection
-            logConfiguration:
-              logDriver: "awslogs"
-              options:
-                "awslogs-group": "/ecs/"
-                "awslogs-region": "ap-southeast-2"
-                "awslogs-stream-prefix": "ecs"
-                "awslogs-create-group": "true"
-
-            # Restart policy
-            restartPolicy:
-              enabled: false
-              ignoredExitCodes: []
-              restartAttemptPeriod: 300
-
-            # HealthCheck
-            # healthCheck:
-            #   command: []
-            #   interval: 30
-            #   timeout: 5
-            #   startPeriod: 0
-            #   retries: 3
-
-            # Container timeouts
-            startTimeout: null
-            stopTimeout: null
-
-            # Docker configuration
-            entryPoint: []
-            command: []
-            workingDirectory: null
-
-            # Ulimits
-            ulimits:
-              - name: null
-                softLimit: null
-                hardLimit: null
-
-            # Docker labels
-            dockerLabels: {}
-
-            # Container mount points
-            mountPoints:
-              []
-              # - sourceVolume: "efs-volume"
-              #   containerPath: "/app/data"
-              #   readOnly: false
-
-            # Volumes from
-            volumesFrom: []
-
-        # Ephemeral storage
-        ephemeral_storage:
-          size_in_gib: 21
-
-        # Volume
-        volume:
-          {}
-          # volume_1: {
-          #   name               : "efs-storage"
-          #   configure_at_launch: false
-
-          #   efs_volume_configuration: {
-          #     file_system_id: "fs-12345678"
-          #     root_directory: "/"
-
-          #     authorization_config: {
-          #       access_point_id: "fsap-12345678"
-          #       iam            : "ENABLED"
-          #     }
-
-          #     transit_encryption     : "ENABLED"
-          #     transit_encryption_port: 2049
-          #   }
-          # }
-
-        # Task definition tags
-        task_tags:
-          Owner: "chienpq137"
-
-        # Service name
-        name: "cicd-lab-frontend"
-
-        # Compute configuration
-        capacity_provider_strategy:
-          capacity_provider_1:
-            capacity_provider: "FARGATE"
-            base: 1
-            weight: 1
-        platform_version: "LATEST"
-        enable_execute_command: true
-
-        # Deployment configuration
-        scheduling_strategy: "REPLICA"
-        desired_count: 1
-        availability_zone_rebalancing: "ENABLED"
-        health_check_grace_period_seconds: 0
-
-        # Deployment options
-        deployment_controller:
-          type: "ECS"
-        deployment_configuration:
-          strategy: "ROLLING"
-        deployment_minimum_healthy_percent: 100
-        deployment_maximum_percent: 200
-
-        # Deployment failure detection
-        deployment_circuit_breaker:
-          enable: true
-          rollback: true
-        # alarms = {
-        #   enable      = false
-        #   alarm_names = []
-        #   rollback    = false
-        # }
-
-        # Networking
-        vpc_key: "vpc_1"
-        sg_key: "ecs_frontend_sg"
-        create_security_group: false
-        assign_public_ip: false
-
-        # Service Connect
-        service_connect_configuration:
-          enabled: true
-          # service:
-          #   - port_name:      "ecs-frontend-port"
-          #     discovery_name: "ecs-frontend"
-          #     client_alias:
-          #       dns_name: "ecs-frontend"
-          #       port:     4000
-          #     timeout:
-          #       idle_timeout_seconds: 3600
-          #     log_configuration:
-          #       log_driver: "awslogs"
-          #       options:
-          #         awslogs-group:         "/ecs/service-connect"
-          #         awslogs-region:        "ap-southeast-2"
-          #         awslogs-stream-prefix: "ecs"
-          #         awslogs-create-group:  "true"
-
-        # Load balancing
-        connect_lb: true
-        load_balancer:
-          alb_1:
-            container_name: "container-1"
-            container_port: 80
-            alb_key: "alb_1"
-            target_group_key: "target_group_1"
-
-        # Service auto scaling
-        enable_autoscaling: true
-        autoscaling_min_capacity: 1
-        autoscaling_max_capacity: 4
-        autoscaling_policies:
-          cpu:
-            policy_type: "TargetTrackingScaling"
-            name: "cpu-autoscaling"
-            target_tracking_scaling_policy_configuration:
-              predefined_metric_specification:
-                predefined_metric_type: "ECSServiceAverageCPUUtilization"
-              target_value: 70
-              scale_out_cooldown: 300
-              scale_in_cooldown: 300
-              disable_scale_in: false
-
-        service_tags:
-          Owner: "chienpq137"
-
-        tags:
-          Owner: "chienpq137"
-
-      service_2:
-        # Task definition family
-        family: "cicd-lab-backend"
-
-        # Launch type
-        requires_compatibilities: ["FARGATE"]
-
-        # OS, Architecture, Network mode
-        runtime_platform:
-          operating_system_family: "LINUX"
-          cpu_architecture: "X86_64"
-        network_mode: "awsvpc"
-
-        # Task size
-        cpu: 1024
-        memory: 4096
-
-        # Task roles
-        tasks_iam_role_name: "cicd-lab-backend-tasks"
-        tasks_iam_role_description: "Tasks IAM role for cicd-lab"
-        tasks_iam_role_policies:
-          RDSFullAccess: "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
-        tasks_iam_role_tags:
-          Owner: "chienpq137"
-
-        # Task execution role
-        rds_key: "rds_database_1"
-
-        # Fault injection
-        enable_fault_injection: false
-
-        container_definitions:
-          container_1:
-            # Container details
-            name: "container-1"
-            essential: true
-            ecr_key: "ecr_repository_2"
-
-            # Private registry
-            # repositoryCredentials:
-            #   credentialsParameter: null
-
-            # Port mappings
-            portMappings:
-              - containerPort: 80
-                protocol: "tcp"
-                name: "ecs-backend-port"
+                name: "ecs-app-port"
                 appProtocol: "http"
 
             # Read only root filesystem
@@ -747,7 +466,7 @@ ecs_clusters:
           Owner: "chienpq137"
 
         # Service name
-        name: "cicd-lab-backend"
+        name: "cicd-lab-app"
 
         # Compute configuration
         capacity_provider_strategy:
@@ -783,7 +502,7 @@ ecs_clusters:
 
         # Networking
         vpc_key: "vpc_1"
-        sg_key: "ecs_backend_sg"
+        sg_key: "ecs_app_sg"
         create_security_group: false
         assign_public_ip: false
 
@@ -791,10 +510,10 @@ ecs_clusters:
         service_connect_configuration:
           enabled: true
           service:
-            - port_name: "ecs-backend-port"
-              discovery_name: "ecs-backend"
+            - port_name: "ecs-app-port"
+              discovery_name: "ecs-app"
               client_alias:
-                dns_name: "ecs-backend"
+                dns_name: "ecs-app"
                 port: 5000
               timeout:
                 idle_timeout_seconds: 3600
