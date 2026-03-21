@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Terraform Init
-      run: terraform init -backend-config="key=state/${{ inputs.environment }}/terraform.tfstate"
+      run: terraform init -update -backend-config="key=state/${{ inputs.environment }}/terraform.tfstate"
       shell: bash
       working-directory: './infra'
 
