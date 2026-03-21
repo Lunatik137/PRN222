@@ -1,11 +1,16 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.ViewModel;
 
 namespace Project_Group3.Controllers;
 
-public class AdminController(IUserRepository userRepository, ILogger<AdminController> logger) : Controller
+public class AdminController(
+    IUserRepository userRepository,
+    CloneEbayDbContext dbContext,
+    ILogger<AdminController> logger) : Controller
 {
     private const string ActionLogSessionKey = "AdminUserManagementLogs";
     private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
@@ -13,16 +18,6 @@ public class AdminController(IUserRepository userRepository, ILogger<AdminContro
         "superadmin",
         "monitor"
     };
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Project_Group3.Models;
-using Project_Group3.ViewModel;
-
-namespace Project_Group3.Controllers;
-
-public class AdminController(CloneEbayDbContext context) : Controller
-{
-    private readonly CloneEbayDbContext _context = context;
 
     [HttpGet]
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
@@ -32,18 +27,14 @@ public class AdminController(CloneEbayDbContext context) : Controller
             return RedirectToAction("Login", "Account");
         }
 
-        var totalUsers = await _context.Users.CountAsync(cancellationToken);
-        var totalProducts = await _context.Products.CountAsync(cancellationToken);
-        var totalOrders = await _context.OrderTables.CountAsync(cancellationToken);
-
-        var viewModel = new DashboardViewModel
+        var vm = new DashboardViewModel
         {
-            TotalUsers = totalUsers,
-            TotalProducts = totalProducts,
-            TotalOrders = totalOrders
+            TotalUsers = await dbContext.Users.CountAsync(cancellationToken),
+            TotalProducts = await dbContext.Products.CountAsync(cancellationToken),
+            TotalOrders = await dbContext.OrderTables.CountAsync(cancellationToken)
         };
 
-        return View(viewModel);
+        return View(vm);
     }
 
     [HttpGet]
@@ -169,52 +160,43 @@ public class AdminController(CloneEbayDbContext context) : Controller
 
     [HttpGet]
     public async Task<IActionResult> Analytics(
-        string periodType = "month",
+        string? periodType = null,
         DateTime? day = null,
         int? month = null,
         int? quarter = null,
         int? year = null,
         CancellationToken cancellationToken = default)
     {
-        if (HttpContext.Session.GetInt32("UserId") is null)
+        if (!HasAdminAccess())
         {
             return RedirectToAction("Login", "Account");
         }
 
-        var normalizedPeriodType = NormalizePeriodType(periodType);
         var today = DateTime.Today;
-
-        var selectedDay = day?.Date ?? today;
-        var selectedYear = year ?? today.Year;
-        var selectedMonth = month is >= 1 and <= 12 ? month.Value : today.Month;
-        var selectedQuarter = quarter is >= 1 and <= 4 ? quarter.Value : ((today.Month - 1) / 3) + 1;
-
-        var (start, endExclusive) = ResolveRange(normalizedPeriodType, selectedDay, selectedMonth, selectedQuarter, selectedYear);
-
-        var ordersInRange = _context.OrderTables
-            .Where(x => x.orderDate != null && x.orderDate >= start && x.orderDate < endExclusive);
-
-        var totalRevenue = await ordersInRange.SumAsync(x => (decimal?)x.totalPrice, cancellationToken) ?? 0m;
-        var totalOrders = await ordersInRange.CountAsync(cancellationToken);
-        var newUsers = await _context.Users
-            .Where(x => x.createdAt >= start && x.createdAt < endExclusive)
-            .CountAsync(cancellationToken);
-
-        var model = new AnalyticsViewModel
+        var vm = new AnalyticsViewModel
         {
-            PeriodType = normalizedPeriodType,
-            Day = selectedDay,
-            Month = selectedMonth,
-            Quarter = selectedQuarter,
-            Year = selectedYear,
-            TotalRevenue = totalRevenue,
-            TotalOrders = totalOrders,
-            NewUsers = newUsers,
-            RangeStart = start,
-            RangeEndExclusive = endExclusive
+            PeriodType = NormalizePeriodType(periodType),
+            Day = day?.Date ?? today,
+            Month = month is >= 1 and <= 12 ? month.Value : today.Month,
+            Quarter = quarter is >= 1 and <= 4 ? quarter.Value : ((today.Month - 1) / 3) + 1,
+            Year = year is >= 2000 and <= 2100 ? year.Value : today.Year
         };
 
-        return View(model);
+        (vm.RangeStart, vm.RangeEndExclusive) = ResolveRange(vm.PeriodType, vm.Day, vm.Month, vm.Quarter, vm.Year);
+
+        vm.TotalOrders = await dbContext.OrderTables
+            .Where(o => o.orderDate >= vm.RangeStart && o.orderDate < vm.RangeEndExclusive)
+            .CountAsync(cancellationToken);
+
+        vm.TotalRevenue = await dbContext.OrderTables
+            .Where(o => o.orderDate >= vm.RangeStart && o.orderDate < vm.RangeEndExclusive)
+            .SumAsync(o => o.totalPrice ?? 0m, cancellationToken);
+
+        vm.NewUsers = await dbContext.Users
+            .Where(u => u.createdAt >= vm.RangeStart && u.createdAt < vm.RangeEndExclusive)
+            .CountAsync(cancellationToken);
+
+        return View(vm);
     }
 
     [HttpGet]
@@ -231,6 +213,22 @@ public class AdminController(CloneEbayDbContext context) : Controller
         return View("Section");
     }
 
+    private static string NormalizePeriodType(string? periodType)
+    {
+        var normalized = periodType?.Trim().ToLowerInvariant();
+        return normalized is "day" or "month" or "quarter" or "year" ? normalized : "month";
+    }
+
+    private static (DateTime Start, DateTime EndExclusive) ResolveRange(string periodType, DateTime day, int month, int quarter, int year)
+        => periodType switch
+        {
+            "day" => (day.Date, day.Date.AddDays(1)),
+            "month" => (new DateTime(year, month, 1), new DateTime(year, month, 1).AddMonths(1)),
+            "quarter" => (new DateTime(year, ((quarter - 1) * 3) + 1, 1), new DateTime(year, ((quarter - 1) * 3) + 1, 1).AddMonths(3)),
+            "year" => (new DateTime(year, 1, 1), new DateTime(year + 1, 1, 1)),
+            _ => (new DateTime(year, month, 1), new DateTime(year, month, 1).AddMonths(1))
+        };
+
     private bool HasAdminAccess()
     {
         var userId = HttpContext.Session.GetInt32("UserId");
@@ -238,6 +236,7 @@ public class AdminController(CloneEbayDbContext context) : Controller
 
         return userId is not null && AllowedRoles.Contains(role ?? string.Empty);
     }
+
     private static (bool? IsApproved, bool? IsLocked) MapStatus(string? status)
         => status?.ToLowerInvariant() switch
         {
@@ -313,55 +312,5 @@ public class AdminController(CloneEbayDbContext context) : Controller
         }
 
         HttpContext.Session.SetString(ActionLogSessionKey, JsonSerializer.Serialize(logs));
-    }
-}
-    private static string NormalizePeriodType(string periodType)
-    {
-        if (string.Equals(periodType, "day", StringComparison.OrdinalIgnoreCase))
-        {
-            return "day";
-        }
-
-        if (string.Equals(periodType, "quarter", StringComparison.OrdinalIgnoreCase))
-        {
-            return "quarter";
-        }
-
-        if (string.Equals(periodType, "year", StringComparison.OrdinalIgnoreCase))
-        {
-            return "year";
-        }
-
-        return "month";
-    }
-
-    private static (DateTime Start, DateTime EndExclusive) ResolveRange(
-        string periodType,
-        DateTime selectedDay,
-        int selectedMonth,
-        int selectedQuarter,
-        int selectedYear)
-    {
-        if (periodType == "day")
-        {
-            var start = selectedDay.Date;
-            return (start, start.AddDays(1));
-        }
-
-        if (periodType == "quarter")
-        {
-            var quarterStartMonth = ((selectedQuarter - 1) * 3) + 1;
-            var start = new DateTime(selectedYear, quarterStartMonth, 1);
-            return (start, start.AddMonths(3));
-        }
-
-        if (periodType == "year")
-        {
-            var start = new DateTime(selectedYear, 1, 1);
-            return (start, start.AddYears(1));
-        }
-
-        var monthStart = new DateTime(selectedYear, selectedMonth, 1);
-        return (monthStart, monthStart.AddMonths(1));
     }
 }
