@@ -140,9 +140,9 @@ module "alb" {
 # Route 53 Record
 ################################################################################
 module "route53_records" {
-  source = "terraform-aws-modules/route53/aws//modules/records"
+  source = "terraform-aws-modules/route53/aws"
 
-  for_each = local.var.route53_records
+  for_each = try(localhost.var.route53_records,{})
 
   create = try(each.value.create, true)
 
