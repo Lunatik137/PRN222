@@ -398,3 +398,28 @@ body {
         flex-direction: column;
     }
 }
+.user-management-page .table-card {
+    background: #fff;
+    border-radius: 16px;
+}
+
+.admin-user-table .risk-block {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.admin-user-table .risk-level {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.user-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .user-actions form {
+        margin: 0;
+    }
