@@ -26,12 +26,16 @@ public class AdminController(IReviewRepository reviewRepository, IFeedbackReposi
     public IActionResult OrderManagement() => AdminSection("Order Management");
 
     [HttpGet]
-    public async Task<IActionResult> ReviewsFeedback(int? ratingFilter, string? keyword, int page = 1, string tab = "reviews")
+    public async Task<IActionResult> ReviewsFeedback(int? ratingFilter, string? keyword, string? sellerIdSearch, string? statusFilter, int page = 1, int pageSize = 6, string tab = "reviews")
     {
         if (HttpContext.Session.GetInt32("UserId") is null) return RedirectToAction("Login", "Account");
 
-        int pageSize = 10;
+        int[] allowedSizes = { 6, 10, 20 };
+        if (!allowedSizes.Contains(pageSize)) pageSize = 6;
+
         ViewBag.CurrentTab = tab;
+        ViewBag.PageSize = pageSize;
+        ViewBag.SellerIdSearch = sellerIdSearch;
 
         if (tab == "sellers")
         {
@@ -42,11 +46,12 @@ public class AdminController(IReviewRepository reviewRepository, IFeedbackReposi
         }
         else
         {
-            var (reviewItems, totalReviews) = await reviewRepository.GetPagedReviewsAsync(keyword, ratingFilter, page, pageSize);
+            var (reviewItems, totalReviews) = await reviewRepository.GetPagedReviewsAsync(keyword, sellerIdSearch, ratingFilter, statusFilter, page, pageSize);
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = (int)Math.Ceiling((double)totalReviews / pageSize);
             ViewBag.ReviewItems = reviewItems;
             ViewBag.RatingFilter = ratingFilter;
+            ViewBag.StatusFilter = statusFilter;
             ViewBag.Keyword = keyword;
         }
 
@@ -55,12 +60,36 @@ public class AdminController(IReviewRepository reviewRepository, IFeedbackReposi
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteReview(int id)
+    public async Task<IActionResult> UpdateReviewStatus(int id, string newStatus)
     {
-        var success = await reviewRepository.DeleteReviewAsync(id);
-        if (success) TempData["SuccessMessage"] = "Review deleted successfully.";
-        else TempData["ErrorMessage"] = "Failed to delete review.";
-        
+        var allowedStatuses = new[] { "Approved", "Rejected", "Hidden", "Deleted", "Show" };
+        if (!allowedStatuses.Contains(newStatus))
+        {
+            TempData["ErrorMessage"] = "Invalid status.";
+            return RedirectToAction(nameof(ReviewsFeedback));
+        }
+
+        bool success;
+        if (newStatus == "Deleted")
+        {
+            success = await reviewRepository.DeleteReviewAsync(id);
+            if (success) 
+            {
+                TempData["SuccessMessage"] = "Review permanently ";
+                TempData["ActionStatus"] = "Deleted";
+            }
+        }
+        else
+        {
+            success = await reviewRepository.UpdateStatusAsync(id, newStatus);
+            if (success) 
+            {
+                TempData["SuccessMessage"] = "Review marked as ";
+                TempData["ActionStatus"] = newStatus;
+            }
+        }
+
+        if (!success) TempData["ErrorMessage"] = "Action failed.";
         return RedirectToAction(nameof(ReviewsFeedback));
     }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Project_Group3.Models;
@@ -16,6 +16,9 @@ public partial class Review
     public string? comment { get; set; }
 
     public DateTime? createdAt { get; set; }
+
+    // Status workflow: Pending -> Approved -> (Deleted | Hidden) | Rejected
+    public string status { get; set; } = "Pending";
 
     public virtual Product? product { get; set; }
 

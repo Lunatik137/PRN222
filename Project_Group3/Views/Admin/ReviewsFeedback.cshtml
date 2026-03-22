@@ -13,13 +13,39 @@
                 <h2>Reviews & Feedback</h2>
                 <p>Monitor products and sellers for any violations.</p>
 
-                @if (TempData["SuccessMessage"] != null)
+                @if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
                 {
-                    <div class="alert alert-success mt-2">@TempData["SuccessMessage"]</div>
-                }
-                @if (TempData["ErrorMessage"] != null)
-                {
-                    <div class="alert alert-danger mt-2">@TempData["ErrorMessage"]</div>
+                    var isSuccess = TempData["SuccessMessage"] != null;
+                    var msg = isSuccess ? TempData["SuccessMessage"]?.ToString() : TempData["ErrorMessage"]?.ToString();
+                    var actionStatus = TempData["ActionStatus"]?.ToString();
+                    
+                    string statusColorClass = actionStatus switch {
+                        "Approved" => "text-success",
+                        "Rejected" => "text-danger",
+                        "Hidden"   => "text-secondary",
+                        "Show"     => "text-info",
+                        "Deleted"  => "text-danger",
+                        _          => "text-dark"
+                    };
+                    
+                    <div class="toast-container position-fixed bottom-0 end-0 p-4" style="z-index: 1055;">
+                        <div id="actionToast" class="toast align-items-center bg-white border shadow-sm" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="d-flex">
+                                <div class="toast-body d-flex align-items-center fs-6 fw-bold text-dark px-3 py-3">
+                                    <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center me-3" style="width: 24px; height: 24px;">
+                                        <span class="fs-6" style="font-family: serif; font-style: italic;">i</span>
+                                    </div>
+                                    <span>
+                                        @msg
+                                        @if (actionStatus != null)
+                                        {
+                                            <span class="@statusColorClass">@actionStatus</span><span>.</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 }
 
                 <ul class="nav nav-tabs mt-4">
@@ -38,10 +64,13 @@
                         
                         <form method="get" class="row g-3 mb-4">
                             <input type="hidden" name="tab" value="reviews" />
-                            <div class="col-md-4">
-                                <input type="text" name="keyword" class="form-control" placeholder="Search product name..." value="@ViewBag.Keyword" />
+                            <div class="col-md-2">
+                                <input type="text" name="keyword" class="form-control" placeholder="Product..." value="@ViewBag.Keyword" />
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <input type="text" name="sellerIdSearch" class="form-control" placeholder="Seller ID" value="@ViewBag.SellerIdSearch" />
+                            </div>
+                            <div class="col-md-2">
                                 <select name="ratingFilter" class="form-select">
                                     <option value="">All Ratings</option>
                                     <option value="5" selected="@(ViewBag.RatingFilter == 5 ? "selected" : null)">5 Stars</option>
@@ -51,49 +80,151 @@
                                     <option value="1" selected="@(ViewBag.RatingFilter == 1 ? "selected" : null)">1 Star</option>
                                 </select>
                             </div>
+                            <div class="col-md-2">
+                                <select name="statusFilter" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <option value="Pending"   selected="@(ViewBag.StatusFilter == "Pending"   ? "selected" : null)">Pending</option>
+                                    <option value="Approved"  selected="@(ViewBag.StatusFilter == "Approved"  ? "selected" : null)">Approved</option>
+                                    <option value="Rejected"  selected="@(ViewBag.StatusFilter == "Rejected"  ? "selected" : null)">Rejected</option>
+                                    <option value="Hidden"    selected="@(ViewBag.StatusFilter == "Hidden"    ? "selected" : null)">Hidden</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select name="pageSize" class="form-select" onchange="this.form.submit()">
+                                    <option value="6" selected="@(ViewBag.PageSize == 6 ? "selected" : null)">6 per page</option>
+                                    <option value="10" selected="@(ViewBag.PageSize == 10 ? "selected" : null)">10 per page</option>
+                                    <option value="20" selected="@(ViewBag.PageSize == 20 ? "selected" : null)">20 per page</option>
+                                </select>
+                            </div>
                             <div class="col-md-3">
                                 <button type="submit" class="btn btn-primary">Filter</button>
                                 <a href="/Admin/ReviewsFeedback?tab=reviews" class="btn btn-secondary">Clear</a>
                             </div>
                         </form>
 
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover align-middle">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Product</th>
-                                        <th>Reviewer</th>
-                                        <th>Rating</th>
-                                        <th>Comment</th>
-                                        <th>Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if(reviews != null) {
-                                        foreach (var review in reviews)
-                                        {
-                                            <tr>
-                                                <td>@review.id</td>
-                                                <td>@(review.product?.title ?? "N/A")</td>
-                                                <td>@(review.reviewer?.username ?? review.reviewer?.email ?? "N/A")</td>
-                                                <td>
-                                                    @for (int i = 0; i < review.rating; i++) { <i class="text-warning">★</i> }
-                                                </td>
-                                                <td>@review.comment</td>
-                                                <td>@review.createdAt?.ToString("dd/MM/yyyy")</td>
-                                                <td>
-                                                    <form asp-controller="Admin" asp-action="DeleteReview" method="post" onsubmit="return confirm('Are you sure you want to delete this review?');">
+                        <div class="row row-cols-1 row-cols-xl-2 g-4">
+                            @if(reviews != null) {
+                                foreach (var review in reviews)
+                                {
+                                    var status = review.status ?? "Pending";
+                                    var riskLevel = review.reviewer?.RiskLevel ?? "—";
+                                    var riskScore = review.reviewer?.RiskScore ?? 0;
+                                    
+                                    string statusBadge = status switch {
+                                        "Approved" => "bg-success",
+                                        "Rejected" => "bg-danger",
+                                        "Hidden"   => "bg-secondary",
+                                        "Show"     => "bg-info text-dark",
+                                        _          => "bg-warning text-dark"
+                                    };
+                                    
+                                    var usernameDisplay = review.reviewer?.username ?? review.reviewer?.email ?? "Unknown User";
+                                    var userInitial = string.IsNullOrEmpty(usernameDisplay) ? "U" : usernameDisplay.Substring(0, 1).ToUpper();
+
+                                    <div class="col">
+                                        <div class="card shadow-sm border-0 h-100">
+                                            <div class="card-body d-flex flex-column">
+                                            <!-- Top Row: Avatar & Status -->
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 48px; height: 48px; font-size: 1.2rem;">
+                                                        @userInitial
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold fs-5">@usernameDisplay</div>
+                                                        <div class="text-muted small">@(review.createdAt?.ToString("dd/MM/yyyy") ?? "—")</div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <span class="badge @statusBadge px-3 py-2 fs-6 rounded-pill">@(status == "Pending" ? "Pending" : status)</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Rating Row -->
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="text-warning fs-5 me-2">
+                                                    @for (int i = 0; i < 5; i++) {
+                                                        if (i < (review.rating ?? 0)) { <i class="bi bi-star-fill">★</i> } else { <i class="bi bi-star text-muted">☆</i> }
+                                                    }
+                                                </div>
+                                                <strong class="fs-5">@(review.rating ?? 0)/5</strong>
+                                            </div>
+
+                                            <!-- Product Box -->
+                                            <div class="bg-light bg-opacity-50 border rounded-3 p-3 mb-3 d-flex align-items-center gap-3">
+                                                <div>
+                                                    <h5 class="mb-1 text-primary">@(review.product?.title ?? "N/A")</h5>
+                                                    <div class="text-muted small">
+                                                        <span class="me-3"><i class="bi bi-box"></i> ID: @(review.product?.id.ToString() ?? "—")</span>
+                                                        <span class="me-3"><i class="bi bi-person-badge"></i> Seller ID: @(review.product?.sellerId?.ToString() ?? "—")</span>
+                                                        <span class="text-primary fw-bold">$@(review.product?.price?.ToString("0.00") ?? "0.00")</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Review Comment -->
+                                            <div class="border rounded-3 p-3 mb-3 bg-white fs-5">
+                                                @review.comment
+                                            </div>
+
+                                            <!-- Risk Alert Box -->
+                                            @if (riskLevel != "—")
+                                            {
+                                                <div class="alert alert-warning border border-warning d-flex align-items-center justify-content-between mb-4">
+                                                    <div>
+                                                        <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                                                        <strong class="text-dark">Warning! Risk Level: <span class="@(riskLevel == "HIGH" ? "text-danger" : "text-dark")">@riskLevel</span></strong>
+                                                        <span class="badge bg-white border text-dark ms-2">Score: @riskScore</span>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            <!-- Action Buttons -->
+                                            <div class="d-flex gap-2">
+                                                @if (status == "Pending")
+                                                {
+                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post">
                                                         <input type="hidden" name="id" value="@review.id" />
-                                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                                        <input type="hidden" name="newStatus" value="Approved" />
+                                                        <button type="submit" class="btn btn-success px-4 fw-bold">
+                                                            <i class="bi bi-check-circle me-1">✓</i> Approve
+                                                        </button>
                                                     </form>
-                                                </td>
-                                            </tr>
-                                        }
-                                    }
-                                </tbody>
-                            </table>
+                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Reject this review?')">
+                                                        <input type="hidden" name="id" value="@review.id" />
+                                                        <input type="hidden" name="newStatus" value="Rejected" />
+                                                        <button type="submit" class="btn btn-danger px-4 fw-bold">
+                                                            <i class="bi bi-trash me-1">🗑</i> Reject
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else if (status == "Approved" || status == "Show")
+                                                {
+                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post">
+                                                        <input type="hidden" name="id" value="@review.id" />
+                                                        <input type="hidden" name="newStatus" value="Hidden" />
+                                                        <button type="submit" class="btn btn-secondary px-4 fw-bold">Hide</button>
+                                                    </form>
+                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Permanently delete this review?')">
+                                                        <input type="hidden" name="id" value="@review.id" />
+                                                        <input type="hidden" name="newStatus" value="Deleted" />
+                                                        <button type="submit" class="btn btn-outline-danger px-4 fw-bold">Delete</button>
+                                                    </form>
+                                                }
+                                                else if (status == "Hidden")
+                                                {
+                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post">
+                                                        <input type="hidden" name="id" value="@review.id" />
+                                                        <input type="hidden" name="newStatus" value="Show" />
+                                                        <button type="submit" class="btn btn-info px-4 fw-bold text-white">Show</button>
+                                                    </form>
+                                                }
+                                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
                         </div>
                     }
                     else if (currentTab == "sellers")
@@ -136,7 +267,6 @@
                                                     else { <span class="badge bg-success">Good</span> }
                                                 </td>
                                                 <td>
-                                                    <a href="#" class="btn btn-sm btn-outline-danger">Lock</a>
                                                     <a href="#" class="btn btn-sm btn-outline-warning">Warn</a>
                                                 </td>
                                             </tr>
@@ -148,16 +278,30 @@
                     }
 
                     <!-- Pagination -->
-                    @if (ViewBag.TotalPages != null && ViewBag.TotalPages > 1)
+                    @if (ViewBag.TotalPages != null && ViewBag.TotalPages > 0)
                     {
-                        <nav class="mt-3">
-                            <ul class="pagination">
-                                @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        var currentPage = (int)ViewBag.CurrentPage;
+                        var totalPages = (int)ViewBag.TotalPages;
+
+                        <nav class="mt-4 pb-3 d-flex justify-content-between align-items-center">
+                            <div class="text-muted fw-bold">
+                                Page @currentPage of @totalPages
+                            </div>
+                            <ul class="pagination mb-0">
+                                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" href="/Admin/ReviewsFeedback?tab=@currentTab&page=@(currentPage - 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Previous</a>
+                                </li>
+                                
+                                @for (int i = 1; i <= totalPages; i++)
                                 {
-                                    <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                                        <a class="page-link" href="/Admin/ReviewsFeedback?tab=@currentTab&page=@i&keyword=@ViewBag.Keyword&ratingFilter=@ViewBag.RatingFilter">@i</a>
+                                    <li class="page-item @(i == currentPage ? "active" : "")">
+                                        <a class="page-link" href="/Admin/ReviewsFeedback?tab=@currentTab&page=@i&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">@i</a>
                                     </li>
                                 }
+
+                                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                    <a class="page-link" href="/Admin/ReviewsFeedback?tab=@currentTab&page=@(currentPage + 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Next</a>
+                                </li>
                             </ul>
                         </nav>
                     }
@@ -166,3 +310,16 @@
         </main>
     </div>
 </div>
+
+@if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var toastEl = document.getElementById('actionToast');
+            if (toastEl) {
+                var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 5000 });
+                toast.show();
+            }
+        });
+    </script>
+}
