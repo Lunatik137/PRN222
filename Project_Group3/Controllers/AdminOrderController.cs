@@ -1,13 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 public class AdminOrderController : Controller
 {
     private readonly IOrderRepository _orderRepo;
+    private readonly IHubContext<NotificationHub> _hub;
 
-    public AdminOrderController(IOrderRepository orderRepo)
+    public AdminOrderController(IOrderRepository repo,
+                                IHubContext<NotificationHub> hub)
     {
-        _orderRepo = orderRepo;
+        _orderRepo = repo;
+        _hub = hub;
     }
+
+
 
     public IActionResult Index()
     {
@@ -26,10 +32,17 @@ public class AdminOrderController : Controller
     }
 
     [HttpPost]
-    public IActionResult UpdateStatus(int id, string status)
+    public async Task<IActionResult> UpdateStatus(int id, string status)
     {
         _orderRepo.UpdateOrderStatus(id, status);
 
-        return RedirectToAction("Details", new { id = id });
+        // lấy tên admin đang login
+        var adminName = HttpContext.Session.GetString("Username") ?? "Admin";
+
+        // gửi realtime
+        await _hub.Clients.All.SendAsync("OrderUpdated",
+            $"{adminName} updated Order #{id} → {status}");
+
+        return RedirectToAction("Details", new { id });
     }
 }

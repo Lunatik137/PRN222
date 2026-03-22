@@ -16,22 +16,22 @@
                 <p>
                     <b>Status:</b>
 
-                    @if (Model.status == "Pending")
+                    @if (Model.status == "Paid")
                     {
-                        <span class="badge bg-warning text-dark">Pending</span>
+                        <span class="badge bg-warning text-dark">Paid</span>
                     }
-                    else if (Model.status == "Shipping")
+                    else if (Model.status == "Refunded")
                     {
-                        <span class="badge bg-primary">Shipping</span>
+                        <span class="badge bg-primary">Refunded</span>
                     }
-                    else if (Model.status == "Delivered")
-                    {
-                        <span class="badge bg-success">Delivered</span>
-                    }
-                    else if (Model.status == "Cancelled")
-                    {
-                        <span class="badge bg-danger">Cancelled</span>
-                    }
+                    @* else if (Model.status == "Delivered") *@
+                    @* { *@
+                    @*     <span class="badge bg-success">Delivered</span> *@
+                    @* } *@
+                    @* else if (Model.status == "Cancelled") *@
+                    @* { *@
+                    @*     <span class="badge bg-danger">Cancelled</span> *@
+                    @* } *@
                     else
                     {
                         <span class="badge bg-secondary">@Model.status</span>
@@ -56,7 +56,7 @@
 
             <thead class="table-dark">
                 <tr>
-                    <th>Product ID</th>
+                    <th>Product Title</th>
                     <th>Quantity</th>
                     <th>Price</th>
                     <th>Subtotal</th>
@@ -74,7 +74,7 @@
                     total += subtotal;
 
                     <tr>
-                        <td>#@item.productId</td>
+                        <td>@item.product?.title</td>
                         <td>@item.quantity</td>
                         <td>$@item.unitPrice</td>
                         <td>$@subtotal</td>
@@ -107,21 +107,21 @@
 
                     <select name="status" class="form-select">
 
-                        <option value="Pending" selected="@(Model.status == "Pending")">
-                            Pending
+                        <option value="Paid" selected="@(Model.status == "Paid")">
+                            Paid
                         </option>
 
-                        <option value="Shipping" selected="@(Model.status == "Shipping")">
-                            Shipping
+                        <option value="Refunded" selected="@(Model.status == "Refunded")">
+                            Refunded
                         </option>
 
-                        <option value="Delivered" selected="@(Model.status == "Delivered")">
-                            Delivered
-                        </option>
+                        @* <option value="Delivered" selected="@(Model.status == "Delivered")"> *@
+                        @*     Delivered *@
+                        @* </option> *@
 
-                        <option value="Cancelled" selected="@(Model.status == "Cancelled")">
-                            Cancelled
-                        </option>
+                        @* <option value="Cancelled" selected="@(Model.status == "Cancelled")"> *@
+                        @*     Cancelled *@
+                        @* </option> *@
 
                     </select>
 

@@ -11,7 +11,7 @@ namespace Project_Group3
             // Add services to the container.
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllersWithViews();
-
+            builder.Services.AddSignalR();
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Project_Group3 API", Version = "v1" });
@@ -47,7 +47,7 @@ namespace Project_Group3
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
-
+            app.MapHub<NotificationHub>("/notificationHub");
             app.Run();
         }
     }
