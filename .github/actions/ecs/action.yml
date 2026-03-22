@@ -6,7 +6,7 @@ inputs:
     description: "Amazon ECS cluster name"
     required: true
   service:
-    description: 'ECS Service JSON output from previous step'
+    description: 'ECS Service name'
     required: true
   image:
     description: "Docker image to deploy"
@@ -15,30 +15,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set Outputs
-      id: outputs
+    - name: Validate inputs
       run: |
-        echo "service-name=$(echo '${{ inputs.service }}' | jq -r '.service_name')" >> $GITHUB_OUTPUT
-    #     echo "task_definition=$(echo '${{ inputs.service }}' | jq -r '.task_definition_arn')" >> $GITHUB_OUTPUT
-    #     echo "container-name=$(echo '${{ inputs.service }}' | jq -r '.container_names')" >> $GITHUB_OUTPUT
+        if [ -z "${{ inputs.service }}" ]; then
+          echo "ERROR: service input is empty"
+          exit 1
+        fi
       shell: bash
-
-    # - name: Fill in the new image ID in the Amazon ECS task definition
-    #   id: task-def
-    #   uses: aws-actions/amazon-ecs-render-task-definition@v1
-    #   with:
-    #     task-definition-arn: ${{ steps.outputs.outputs.task_definition }}
-    #     container-name: ${{ steps.outputs.outputs.container-name }}
-    #     image: ${{ inputs.image }}
-
-    # - name: Deploy Amazon ECS task definition
-    #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-    #   with:
-    #     task-definition: ${{ steps.task-def.outputs.task-definition }}
-    #     service: ${{ steps.outputs.outputs.service-name }}
-    #     cluster: ${{ inputs.cluster-name }}
-    #     wait-for-service-stability: true
     
     - name: Force new deployment on Amazon ECS service
-      run: aws ecs update-service --cluster ${{ inputs.cluster-name }} --service ${{ steps.outputs.outputs.service-name }} --force-new-deployment
+      run: aws ecs update-service --cluster ${{ inputs.cluster-name }} --service ${{ inputs.service }} --force-new-deployment
       shell: bash

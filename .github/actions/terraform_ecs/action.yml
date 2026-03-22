@@ -10,6 +10,9 @@ outputs:
   cluster-name:
     description: 'ECS Cluster Name'
     value: ${{ steps.outputs.outputs.cluster-name }}
+  app:
+    description: 'ECS Service Name'
+    value: ${{ steps.outputs.outputs.app }}
 
 runs:
   using: "composite"
@@ -39,6 +42,7 @@ runs:
       id: outputs
       run: |
         echo "cluster-name=$(terraform output -json ecs_info | jq -r '.ecs_cluster_1.cluster_name')" >> $GITHUB_OUTPUT
+        echo "app=$(terraform output -json ecs_info | jq -r '.ecs_cluster_1.services.service_1.service_name')" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: './infra'
 
