@@ -71,35 +71,19 @@ resource "aws_security_group_rule" "this" {
 # Route 53 Zone
 ################################################################################
 module "route53_zones" {
-  source = "terraform-aws-modules/route53/aws"
+  source   = "terraform-aws-modules/route53/aws"
+  for_each = try(local.var.route53_zonesf, {})
+  create   = try(each.value.create, true)
 
-  for_each = try(localhost.var.route53_zones,{})
+  name          = try(each.value.name, null)
+  comment       = try(each.value.comment, null)
+  force_destroy = try(each.value.force_destroy, true)
 
-  create = try(each.value.create, true)
-
-  zones = try(each.value.zones, {})
-  tags  = try(merge(each.value.tags, var.environment_tags), {})
 }
 
 ################################################################################
 # ACM
 ################################################################################
-module "acm" {
-  source = "terraform-aws-modules/acm/aws"
-
-  for_each = local.var.acms
-
-  create_certificate = try(each.value.create, true)
-
-  domain_name               = try(values(module.route53_zones[each.value.zone_key].route53_zone_name)[0], "")
-  zone_id                   = try(values(module.route53_zones[each.value.zone_key].route53_zone_zone_id)[0], null)
-  export                    = try(each.value.export, null)
-  validation_method         = try(each.value.validation_method, null)
-  key_algorithm             = try(each.value.key_algorithm, null)
-  subject_alternative_names = try(["*.${values(module.route53_zones[each.value.zone_key].route53_zone_name)[0]}"], [])
-
-  tags = try(merge(each.value.tags, var.environment_tags), {})
-}
 
 ################################################################################
 # ALB
@@ -116,14 +100,13 @@ module "alb" {
   internal              = try(each.value.internal, false)
   ip_address_type       = try(each.value.ip_address_type, null)
   vpc_id                = try(module.vpc[each.value.vpc_key].vpc_id, null)
-  ipam_pools            = try(coalesce(each.value.ipam_pools, {}), {})
+  ipam_pools            = try(coalesce(each.value.ipam_pools, null), null)
   subnets               = try(module.vpc[each.value.vpc_key].public_subnets, [])
   security_groups       = try([module.sg[each.value.sg_key].security_group_id], [])
   create_security_group = try(each.value.create_security_group, false)
 
   listeners = try({
     for k, v in each.value.listeners : k => merge(v, {
-      certificate_arn = try(v.acm_key, null) != null ? module.acm[v.acm_key].acm_certificate_arn : null
     })
   }, {})
 
@@ -140,21 +123,17 @@ module "alb" {
 # Route 53 Record
 ################################################################################
 module "route53_records" {
-  source = "terraform-aws-modules/route53/aws"
+  source   = "terraform-aws-modules/route53/aws"
+  for_each = try(local.var.route53_recordsf, {})
+  create   = try(each.value.create, true)
 
-  for_each = try(localhost.var.route53_records,{})
+  name        = try(each.value.name, null)
+  create_zone = try(each.value.create_zone, false)
 
-  create = try(each.value.create, true)
-
-  zone_id = try(values(module.route53_zones[each.value.zone_key].route53_zone_zone_id)[0], null)
-  records = try([
-    for record in each.value.records : merge(record, {
-      alias = try(merge(record.alias, {
-        name    = try(record.alb_key, null) != null ? module.alb[record.alb_key].dns_name : null
-        zone_id = try(record.alb_key, null) != null ? module.alb[record.alb_key].zone_id : null
-      }), record.alias)
-    })
-  ], [])
+  records = try({ for k, v in each.value.records : k => merge(v, { alias = try(merge(v.alias, {
+    name    = try(module.alb[v.alb_key].dns_name, null)
+    zone_id = try(module.alb[v.alb_key].zone_id, null)
+  }), {}) }) }, {})
 }
 
 ################################################################################

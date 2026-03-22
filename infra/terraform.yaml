@@ -238,7 +238,7 @@ rds_databases:
     performance_insights_kms_key_id: "alias/aws/rds"
     monitoring_interval: 60
     create_cloudwatch_log_group: true
-    enabled_cloudwatch_logs_exports: ["error", "agent"]
+    enabled_cloudwatch_logs_exports: ["error"]
 
     # Database options
     family: "sqlserver-ex-15.0"
