@@ -70,16 +70,16 @@ resource "aws_security_group_rule" "this" {
 ################################################################################
 # Route 53 Zone
 ################################################################################
-module "route53_zones" {
-  source   = "terraform-aws-modules/route53/aws"
-  for_each = try(local.var.route53_zonesf, {})
-  create   = try(each.value.create, true)
+# module "route53_zones" {
+#   source   = "terraform-aws-modules/route53/aws"
+#   for_each = try(local.var.route53_zonesf, {})
+#   create   = try(each.value.create, true)
 
-  name          = try(each.value.name, null)
-  comment       = try(each.value.comment, null)
-  force_destroy = try(each.value.force_destroy, true)
+#   name          = try(each.value.name, null)
+#   comment       = try(each.value.comment, null)
+#   force_destroy = try(each.value.force_destroy, true)
 
-}
+# }
 
 ################################################################################
 # ACM
@@ -122,19 +122,19 @@ module "alb" {
 ################################################################################
 # Route 53 Record
 ################################################################################
-module "route53_records" {
-  source   = "terraform-aws-modules/route53/aws"
-  for_each = try(local.var.route53_recordsf, {})
-  create   = try(each.value.create, true)
+# module "route53_records" {
+#   source   = "terraform-aws-modules/route53/aws"
+#   for_each = try(local.var.route53_recordsf, {})
+#   create   = try(each.value.create, true)
 
-  name        = try(each.value.name, null)
-  create_zone = try(each.value.create_zone, false)
+#   name        = try(each.value.name, null)
+#   create_zone = try(each.value.create_zone, false)
 
-  records = try({ for k, v in each.value.records : k => merge(v, { alias = try(merge(v.alias, {
-    name    = try(module.alb[v.alb_key].dns_name, null)
-    zone_id = try(module.alb[v.alb_key].zone_id, null)
-  }), {}) }) }, {})
-}
+#   records = try({ for k, v in each.value.records : k => merge(v, { alias = try(merge(v.alias, {
+#     name    = try(module.alb[v.alb_key].dns_name, null)
+#     zone_id = try(module.alb[v.alb_key].zone_id, null)
+#   }), {}) }) }, {})
+# }
 
 ################################################################################
 # RDS
@@ -265,7 +265,7 @@ module "ecs" {
   for_each = local.var.ecs_clusters
 
   create = try(each.value.create, true)
-
+  cluster_capacity_providers = try(each.value.cluster_capacity_providers, [])
   cluster_name                       = try(each.value.cluster_name, null)
   cluster_service_connect_defaults   = try({ namespace = aws_service_discovery_http_namespace.this[each.key].arn }, null)
   default_capacity_provider_strategy = try(each.value.default_capacity_provider_strategy, {})

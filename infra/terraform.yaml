@@ -101,15 +101,6 @@ route53_zones:
 ################################################################################
 # ACM
 ################################################################################
-acms:
-  acm_1:
-    zone_key: "route53_zone_1"
-    export: "DISABLED"
-    validation_method: "DNS"
-    key_algorithm: "RSA_2048"
-
-    tags:
-      Owner: "chienpq137"
 
 ################################################################################
 # ALB
@@ -129,15 +120,6 @@ albs:
       http-https-redirect:
         port: 80
         protocol: "HTTP"
-        redirect:
-          port: "443"
-          protocol: "HTTPS"
-          status_code: "HTTP_301"
-
-      https:
-        port: 443
-        protocol: "HTTPS"
-        acm_key: "acm_1"
         forward:
           target_group_key: "target_group_1"
 
@@ -264,7 +246,6 @@ rds_databases:
 # ECR
 ################################################################################
 ecr_repositories:
-
   ecr_repository_1:
     repository_name: "cicd-lab-app-repo"
     repository_image_tag_mutability: "MUTABLE"
@@ -301,7 +282,9 @@ ecs_clusters:
   ecs_cluster_1:
     kms_key_id: "alias/aws/eks"
     cluster_name: "ecs-cluster-1"
-
+    cluster_capacity_providers:
+      - "FARGATE"
+      - "FARGATE_SPOT"
     default_capacity_provider_strategy:
       FARGATE:
         weight: 1
@@ -427,8 +410,7 @@ ecs_clusters:
             dockerLabels: {}
 
             # Container mount points
-            mountPoints:
-              []
+            mountPoints: []
               # - sourceVolume:  "efs-volume"
               #   containerPath: "/app/data"
               #   readOnly:      false
@@ -441,8 +423,7 @@ ecs_clusters:
           size_in_gib: 21
 
         # Volume
-        volume:
-          {}
+        volume: {}
           # volume_1 = {
           #   name                = "efs-storage"
           #   configure_at_launch = false
@@ -526,7 +507,7 @@ ecs_clusters:
                   "awslogs-create-group": "true"
 
         # Load balancing
-        connect_lb: false
+        connect_lb: true
         load_balancer:
           alb_1:
             container_name: "container-1"
