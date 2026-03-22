@@ -349,7 +349,7 @@ ecs_clusters:
 
             # Port mappings
             portMappings:
-              - containerPort: 80
+              - containerPort: 5000
                 protocol: "tcp"
                 name: "ecs-app-port"
                 appProtocol: "http"
@@ -511,7 +511,7 @@ ecs_clusters:
         load_balancer:
           alb_1:
             container_name: "container-1"
-            container_port: 80
+            container_port: 5000
             alb_key: "alb_1"
             target_group_key: "target_group_1"
 
