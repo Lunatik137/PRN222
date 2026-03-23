@@ -281,13 +281,13 @@ public class AdminController(
         TempData["ActionSuccess"] = isAutoLocked
                     ? $"Product #{product.id} has been hidden. Seller was auto-locked by risk policy."
                     : $"Product #{product.id} has been hidden."; AppendProductModerationLog(new AdminActionLogItem
-        {
-            AtUtc = DateTime.UtcNow,
-            Action = "Hide Product",
-            Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
-            Target = product.title ?? $"Product #{product.id}",
-            Details = input.Reason.Trim()
-        });
+                    {
+                        AtUtc = DateTime.UtcNow,
+                        Action = "Hide Product",
+                        Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
+                        Target = product.title ?? $"Product #{product.id}",
+                        Details = input.Reason.Trim()
+                    });
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -335,13 +335,13 @@ public class AdminController(
         TempData["ActionSuccess"] = isAutoLocked
                    ? $"Product #{product.id} has been deleted. Seller was auto-locked by risk policy."
                    : $"Product #{product.id} has been deleted."; AppendProductModerationLog(new AdminActionLogItem
-        {
-            AtUtc = DateTime.UtcNow,
-            Action = "Delete Product",
-            Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
-            Target = product.title ?? $"Product #{product.id}",
-            Details = input.Reason.Trim()
-        });
+                   {
+                       AtUtc = DateTime.UtcNow,
+                       Action = "Delete Product",
+                       Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
+                       Target = product.title ?? $"Product #{product.id}",
+                       Details = input.Reason.Trim()
+                   });
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -433,15 +433,21 @@ public class AdminController(
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
 
-        return userId is not null && AllowedRoles.Contains(role ?? string.Empty);
+        return userId is not null
+            && AllowedRoles.Contains(role ?? string.Empty)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
     }
     private bool HasSuperAdminAccess()
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
 
-        return userId is not null && string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
+        return userId is not null
+            && string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
     }
     private static (bool? IsApproved, bool? IsLocked) MapStatus(string? status)
         => status?.ToLowerInvariant() switch
