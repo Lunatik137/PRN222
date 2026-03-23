@@ -5,36 +5,45 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body">
 
-        <p><b>ID:</b> #@Model.id</p>
-        <p><b>Order:</b> #@Model.orderId</p>
-        <p><b>User:</b> @Model.raisedByNavigation?.username</p>
-        <p><b>Description:</b> @Model.description</p>
+        <div class="row">
+            <div class="col-md-6">
+                <p><b>ID:</b> #@Model.id</p>
+                <p><b>Order:</b> #@Model.orderId</p>
+                <p><b>User:</b> @Model.raisedByNavigation?.username</p>
+            </div>
 
-        <p>
-            <b>Status:</b>
+            <div class="col-md-6">
+                <p>
+                    <b>Status:</b>
 
-            @if (Model.status == "PENDING")
-            {
-                <span class="badge bg-warning text-dark">Pending</span>
-            }
-            else if (Model.status == "IN_PROGRESS")
-            {
-                <span class="badge bg-info">Processing</span>
-            }
-            else if (Model.status == "RESOLVED")
-            {
-                <span class="badge bg-success">Resolved</span>
-            }
-            else if (Model.status == "REJECTED")
-            {
-                <span class="badge bg-danger">Rejected</span>
-            }
-        </p>
+                    @if (Model.status == "PENDING")
+                    {
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    }
+                    else if (Model.status == "IN_PROGRESS")
+                    {
+                        <span class="badge bg-info">Processing</span>
+                    }
+                    else if (Model.status == "RESOLVED")
+                    {
+                        <span class="badge bg-success">Resolved</span>
+                    }
+                    else if (Model.status == "REJECTED")
+                    {
+                        <span class="badge bg-danger">Rejected</span>
+                    }
 
-        <p>
-            <b>Resolution:</b><br />
-            @(Model.resolution ?? "No resolution yet")
-        </p>
+                </p>
+            </div>
+        </div>
+
+        <hr />
+
+        <p><b>Description:</b></p>
+        <p>@Model.description</p>
+
+        <p><b>Resolution:</b></p>
+        <p>@(Model.resolution ?? "No resolution yet")</p>
 
     </div>
 </div>

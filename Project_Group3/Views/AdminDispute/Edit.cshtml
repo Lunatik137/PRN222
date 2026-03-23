@@ -2,39 +2,41 @@
 
 <h3 class="mb-4">Update Dispute</h3>
 
-@if (Model.status == "RESOLVED")
-{
-    <div class="alert alert-success">
-        This dispute has been resolved and cannot be edited.
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <form method="post" asp-action="Update">
+
+            <input type="hidden" name="id" value="@Model.id" />
+
+            <div class="mb-3">
+                <label>Status</label>
+
+                <select name="status" class="form-select">
+
+                    <option value="PENDING" selected="@(Model.status=="PENDING")">Pending</option>
+                    <option value="IN_PROGRESS" selected="@(Model.status=="IN_PROGRESS")">Processing</option>
+                    <option value="RESOLVED" selected="@(Model.status=="RESOLVED")">Resolved</option>
+                    <option value="REJECTED" selected="@(Model.status=="REJECTED")">Rejected</option>
+
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label>Resolution</label>
+                <textarea name="resolution" class="form-control">
+                    @Model.resolution
+</textarea>
+            </div>
+
+            <button class="btn btn-primary">Update</button>
+
+            <a href="/AdminDispute/Details/@Model.id"
+               class="btn btn-secondary ms-2">
+                Cancel
+            </a>
+
+        </form>
+
     </div>
-
-    <a href="/AdminDispute" class="btn btn-secondary">← Back</a>
-}
-else
-{
-    <form method="post" asp-action="Update">
-
-        <input type="hidden" name="id" value="@Model.id" />
-
-        <div class="mb-3">
-            <label>Status</label>
-            <select name="status" class="form-select">
-
-                <option value="PENDING" selected="@(Model.status=="PENDING")">Pending</option>
-                <option value="IN_PROGRESS" selected="@(Model.status=="IN_PROGRESS")">Processing</option>
-                <option value="RESOLVED" selected="@(Model.status=="RESOLVED")">Resolved</option>
-                <option value="REJECTED" selected="@(Model.status=="REJECTED")">Rejected</option>
-
-            </select>
-        </div>
-
-        <div class="mb-3">
-            <label>Resolution</label>
-            <textarea name="resolution" class="form-control">@Model.resolution</textarea>
-        </div>
-
-        <button class="btn btn-primary">Update</button>
-        <a href="/AdminDispute" class="btn btn-secondary">Cancel</a>
-
-    </form>
-}
+</div>
