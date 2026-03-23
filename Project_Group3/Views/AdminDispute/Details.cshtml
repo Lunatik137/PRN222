@@ -1,0 +1,66 @@
+﻿@model Dispute
+
+<h3 class="mb-4">Dispute Details</h3>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <div class="row">
+            <div class="col-md-6">
+                <p><b>ID:</b> #@Model.id</p>
+                <p><b>Order:</b> #@Model.orderId</p>
+                <p><b>User:</b> @Model.raisedByNavigation?.username</p>
+            </div>
+
+            <div class="col-md-6">
+                <p>
+                    <b>Status:</b>
+
+                    @if (Model.status == "PENDING")
+                    {
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    }
+                    else if (Model.status == "IN_PROGRESS")
+                    {
+                        <span class="badge bg-info">Processing</span>
+                    }
+                    else if (Model.status == "RESOLVED")
+                    {
+                        <span class="badge bg-success">Resolved</span>
+                    }
+                    else if (Model.status == "REJECTED")
+                    {
+                        <span class="badge bg-danger">Rejected</span>
+                    }
+
+                </p>
+            </div>
+        </div>
+
+        <hr />
+
+        <p><b>Description:</b></p>
+        <p>@Model.description</p>
+
+        <p><b>Resolution:</b></p>
+        <p>@(Model.resolution ?? "No resolution yet")</p>
+
+    </div>
+</div>
+
+<div class="d-flex gap-2">
+
+    @if (Model.status != "RESOLVED")
+    {
+        <a href="/AdminDispute/Edit/@Model.id"
+           class="btn btn-primary">
+            Edit
+        </a>
+    }
+
+    <a href="/AdminDispute"
+       class="btn btn-secondary">
+        ← Back
+    </a>
+
+</div>
