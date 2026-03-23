@@ -423,3 +423,289 @@ body {
     .user-actions form {
         margin: 0;
     }
+/* Clone eBay homepage */
+.ebay-home {
+    background: #fff;
+    color: #191919;
+}
+
+.ebay-wrap {
+    width: min(1520px, 96%);
+    margin: 0 auto;
+}
+
+.ebay-topbar {
+    border-bottom: 1px solid #e5e5e5;
+    padding: 8px 0;
+    font-size: .9rem;
+}
+
+.ebay-top-links {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+    .ebay-top-links a,
+    .ebay-categories a,
+    .ebay-footer a {
+        color: #191919;
+        text-decoration: none;
+    }
+
+.ebay-searchbar {
+    border-bottom: 1px solid #e5e5e5;
+    padding: 14px 0;
+}
+
+.ebay-logo {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -2px;
+    background: linear-gradient(90deg, #e53238 0 25%, #0064d2 25% 50%, #f5af02 50% 75%, #86b817 75% 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.ebay-search-input {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: 2px solid #191919;
+    border-radius: 50px;
+    overflow: hidden;
+    min-width: 280px;
+}
+
+    .ebay-search-input input {
+        border: 0;
+        padding: 12px 18px;
+        flex: 1;
+        outline: 0;
+    }
+
+    .ebay-search-input .btn {
+        border-radius: 40px;
+        padding: 12px 34px;
+        margin: 5px;
+        background: #3665f3;
+        border-color: #3665f3;
+    }
+
+.ebay-navline {
+    border-bottom: 1px solid #ececec;
+    padding: 10px 0;
+}
+
+.ebay-categories {
+    display: flex;
+    gap: 26px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 2px;
+}
+
+.hero-banner {
+    background: #e8aa3c;
+    padding: 56px 0;
+}
+
+.hero-inner {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 36px;
+    align-items: center;
+}
+
+    .hero-inner h1 {
+        font-size: clamp(2rem, 4vw, 3.75rem);
+        font-weight: 700;
+    }
+
+.hero-grid,
+.card-row,
+.deal-row,
+.purple-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.hero-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.hero-card,
+.category-card,
+.deal-card,
+.purple-grid > div {
+    border-radius: 16px;
+    background: #f1f1f1;
+    display: grid;
+    place-items: center;
+}
+
+.hero-card {
+    min-height: 210px;
+    font-size: 3rem;
+}
+
+.section-title {
+    font-size: clamp(1.8rem, 3vw, 3rem);
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.card-row {
+    grid-template-columns: repeat(7, minmax(150px, 1fr));
+}
+
+.category-card {
+    min-height: 180px;
+    padding: 14px;
+    align-content: center;
+}
+
+    .category-card span {
+        font-size: 3rem;
+    }
+
+    .category-card p {
+        width: 100%;
+        margin: 16px 0 0;
+        text-align: left;
+        font-weight: 500;
+    }
+
+.simple-cta {
+    background: #f3f3f3;
+    border-radius: 16px;
+    padding: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.purple-banner {
+    background: #5a3df0;
+    padding: 28px 0;
+    color: #fff;
+}
+
+.purple-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: center;
+}
+
+    .purple-inner h2 {
+        font-size: clamp(1.9rem, 3.6vw, 3.5rem);
+        font-weight: 700;
+    }
+
+.purple-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+    .purple-grid > div {
+        min-height: 180px;
+        background: rgba(255, 255, 255, 0.15);
+        font-size: 3rem;
+    }
+
+.deal-row {
+    grid-template-columns: repeat(5, minmax(180px, 1fr));
+}
+
+.deal-card {
+    min-height: 250px;
+    padding: 18px;
+    align-content: start;
+}
+
+    .deal-card span {
+        font-size: 3.2rem;
+        margin-bottom: 20px;
+    }
+
+    .deal-card h5 {
+        font-size: 1.2rem;
+    }
+
+    .deal-card p {
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+.money-back {
+    background: linear-gradient(90deg, rgba(45, 45, 57, 0.75), rgba(45, 45, 57, 0.45)), url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+    padding: 80px 0;
+    color: #fff;
+}
+
+.money-copy {
+    max-width: 560px;
+}
+
+.ebay-footer {
+    border-top: 1px solid #e5e5e5;
+    padding: 36px 0 24px;
+    background: #f7f7f7;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+    .footer-grid h6 {
+        font-size: 1.05rem;
+        margin-bottom: 14px;
+    }
+
+    .footer-grid a {
+        display: block;
+        color: #555;
+        margin-bottom: 8px;
+    }
+
+@media (max-width: 1100px) {
+    .hero-inner,
+    .purple-inner {
+        grid-template-columns: 1fr;
+    }
+
+    .card-row {
+        grid-template-columns: repeat(3, minmax(140px, 1fr));
+    }
+
+    .deal-row {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .ebay-logo {
+        font-size: 2.4rem;
+    }
+
+    .hero-grid,
+    .purple-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .card-row,
+    .deal-row,
+    .footer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .simple-cta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

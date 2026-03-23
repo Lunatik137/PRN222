@@ -1,26 +1,180 @@
-﻿﻿@using Microsoft.AspNetCore.Http
+﻿@using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Clone eBay Home";
     var username = Context.Session.GetString("Username");
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
+<div class="ebay-home">
+    <div class="ebay-topbar">
+        <div class="ebay-wrap d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="small text-muted">
+                Hi!
+                @if (string.IsNullOrEmpty(username))
+                {
+                    <a asp-controller="Account" asp-action="Login" class="fw-semibold text-decoration-none">Sign in</a>
+                    <span> or </span>
+                    <a asp-controller="Account" asp-action="Register" class="fw-semibold text-decoration-none">register</a>
+                }
+                else
+                {
+                    <span class="fw-semibold text-dark">@username</span>
+                }
+            </div>
+            <div class="ebay-top-links">
+                <a href="#">Deals</a>
+                <a href="#">Help &amp; Contact</a>
+                <a href="#">Sell</a>
+                <a href="#">Watchlist</a>
+                <a href="#">My eBay</a>
+            </div>
+        </div>
+    </div>
 
-    @if (TempData["LoginMessage"] is string loginMessage)
-    {
-        <div class="alert alert-success">@loginMessage</div>
-    }
+    <div class="ebay-searchbar">
+        <div class="ebay-wrap d-flex align-items-center gap-3 flex-wrap">
+            <div class="ebay-logo" aria-label="eBay">ebay</div>
+            <button class="btn btn-link text-decoration-none text-dark p-0">Shop by category</button>
+            <div class="ebay-search-input">
+                <input type="text" placeholder="Search for anything" />
+                <button class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </div>
 
-    @if (string.IsNullOrEmpty(username))
-    {
-        <p>You are not logged in yet.</p>
-        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Login</a>
-    }
-    else
-    {
-        <p>You are logged in with account <strong>@username</strong>.</p>
-    }
+    <div class="ebay-navline">
+        <div class="ebay-wrap">
+            <div class="ebay-categories">
+                <a href="#">Saved</a>
+                <a href="#">Electronics</a>
+                <a href="#">Motors</a>
+                <a href="#">Fashion</a>
+                <a href="#">Collectibles</a>
+                <a href="#">Health &amp; Beauty</a>
+                <a href="#">Home &amp; Garden</a>
+                <a href="#">Deals</a>
+            </div>
+        </div>
+    </div>
 
-    <p class="mt-3">Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <section class="hero-banner">
+        <div class="ebay-wrap hero-inner">
+            <div>
+                <h1>Best loved items at 12%* off</h1>
+                <p>Save on top categories, from fashion to vehicle parts.</p>
+                <button class="btn btn-dark rounded-pill px-4 py-2">Get your coupon</button>
+            </div>
+            <div class="hero-grid">
+                <div class="hero-card">🎴</div>
+                <div class="hero-card">🛞</div>
+                <div class="hero-card">🧥</div>
+                <div class="hero-card">👜</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="ebay-wrap py-5">
+        <h2 class="section-title">The future in your hands</h2>
+        <div class="card-row">
+            <div class="category-card"><span>💻</span><p>Laptops</p></div>
+            <div class="category-card"><span>⌨️</span><p>Computer parts</p></div>
+            <div class="category-card"><span>📱</span><p>Smartphones</p></div>
+            <div class="category-card"><span>🖥️</span><p>Enterprise networking</p></div>
+            <div class="category-card"><span>📟</span><p>Tablets and eBooks</p></div>
+            <div class="category-card"><span>💾</span><p>Storage media</p></div>
+            <div class="category-card"><span>📷</span><p>Lenses and filters</p></div>
+        </div>
+    </section>
+
+    <section class="ebay-wrap py-2">
+        <div class="simple-cta">
+            <div>
+                <h3>Shopping made easy</h3>
+                <p>Enjoy reliability, secure deliveries and hassle-free returns.</p>
+            </div>
+            <button class="btn btn-dark rounded-pill px-4 py-2">Start now</button>
+        </div>
+    </section>
+
+    <section class="purple-banner mt-5">
+        <div class="ebay-wrap purple-inner">
+            <div>
+                <h2>Shop the world. Ship for free.</h2>
+                <p>Discover international finds with free shipping included.</p>
+                <button class="btn btn-light rounded-pill px-4 py-2">Shop now</button>
+            </div>
+            <div class="purple-grid">
+                <div>👟</div>
+                <div>👜</div>
+                <div>🎁</div>
+                <div>📱</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="ebay-wrap py-5">
+        <h2 class="section-title">Today's Deals</h2>
+        <p class="text-muted mt-n2 mb-4">All with free shipping</p>
+        <div class="deal-row">
+            <div class="deal-card"><span>🧹</span><h5>Dyson V15 Cordless</h5><p>₫10,519,737</p></div>
+            <div class="deal-card"><span>🌬️</span><h5>Purifier Hot+Cool</h5><p>₫5,943,537</p></div>
+            <div class="deal-card"><span>🎧</span><h5>Skullcandy Crusher Evo</h5><p>₫2,103,737</p></div>
+            <div class="deal-card"><span>🔊</span><h5>Bose Soundbar</h5><p>₫2,603,700</p></div>
+            <div class="deal-card"><span>📱</span><h5>Apple iPad 10.2</h5><p>₫4,730,055</p></div>
+        </div>
+    </section>
+
+    <section class="ebay-wrap pb-5">
+        <h2 class="section-title">Trending on eBay</h2>
+        <div class="card-row">
+            <div class="category-card"><span>🖥️</span><p>Tech</p></div>
+            <div class="category-card"><span>🚗</span><p>Motors</p></div>
+            <div class="category-card"><span>👜</span><p>Luxury</p></div>
+            <div class="category-card"><span>🧸</span><p>Collectibles</p></div>
+            <div class="category-card"><span>🛋️</span><p>Home and garden</p></div>
+            <div class="category-card"><span>🃏</span><p>Trading cards</p></div>
+            <div class="category-card"><span>🧴</span><p>Health and beauty</p></div>
+        </div>
+    </section>
+
+    <section class="money-back">
+        <div class="ebay-wrap money-back-inner">
+            <div class="money-copy">
+                <h2>eBay Money Back Guarantee</h2>
+                <p>Get the item you ordered or get your money back, on virtually all items!</p>
+                <button class="btn btn-light rounded-pill px-4 py-2">Learn more</button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="ebay-footer">
+        <div class="ebay-wrap">
+            <div class="footer-grid">
+                <div>
+                    <h6>Buy</h6>
+                    <a href="#">Registration</a>
+                    <a href="#">Bidding &amp; buying help</a>
+                    <a href="#">Stores</a>
+                </div>
+                <div>
+                    <h6>Sell</h6>
+                    <a href="#">Start selling</a>
+                    <a href="#">How to sell</a>
+                    <a href="#">Affiliates</a>
+                </div>
+                <div>
+                    <h6>About eBay</h6>
+                    <a href="#">Company info</a>
+                    <a href="#">News</a>
+                    <a href="#">Investors</a>
+                </div>
+                <div>
+                    <h6>Help &amp; Contact</h6>
+                    <a href="#">Seller Center</a>
+                    <a href="#">Contact Us</a>
+                    <a href="#">Returns</a>
+                </div>
+            </div>
+            <p class="small text-muted mb-0">Copyright © 1995-2026 eBay Inc. All Rights Reserved.</p>
+        </div>
+    </footer>
 </div>
