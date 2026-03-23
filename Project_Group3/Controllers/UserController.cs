@@ -71,6 +71,10 @@ namespace Project_Group3.Controllers
 
         public sealed record LockRequest(string Reason);
 
+        [HttpPost("reject/{id:int}")]
+        public async Task<IActionResult> Reject(int id, [FromBody] LockRequest request, CancellationToken cancellationToken)
+            => await _userRepository.RejectAsync(id, request.Reason, cancellationToken) ? NoContent() : NotFound();
+
         [HttpPost("lock/{id:int}")]
         public async Task<IActionResult> Lock(int id, [FromBody] LockRequest request, CancellationToken cancellationToken)
             => await _userRepository.LockAsync(id, request.Reason, cancellationToken) ? NoContent() : NotFound();
