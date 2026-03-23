@@ -1,6 +1,9 @@
-﻿﻿@{
-var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
-string IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+﻿@using Microsoft.AspNetCore.Http
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    string IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isSuperAdmin = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
 }
 
 <aside class="dashboard-sidebar">
@@ -8,8 +11,16 @@ string IsActive(string action) => string.Equals(currentAction, action, StringCom
     <nav class="menu list-unstyled">
         <a asp-controller="Admin" asp-action="Dashboard" class="menu-link @IsActive("Dashboard")">Dashboard</a>
         <a asp-controller="Admin" asp-action="UserManagement" class="menu-link @IsActive("UserManagement")">User Management</a>
+
         <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("ProductModeration")">Product Moderation</a>
         <a asp-controller="AdminOrder" asp-action="Index" class="menu-link @IsActive("Index")">Order Management</a>
+
+        @if (isSuperAdmin)
+        {
+            <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("ProductModeration")">Product Moderation</a>
+        }
+        <a asp-controller="AdminOrder" asp-action="Index" class="menu-link @IsActive("Index")">Order Management</a>
+
         <a asp-controller="Admin" asp-action="ReviewsFeedback" class="menu-link @IsActive("ReviewsFeedback")">Reviews & Feedback</a>
         <a asp-controller="AdminDispute" asp-action="Index" class="menu-link @IsActive("Index")">Complaints / Disputes</a>
         <a asp-controller="Admin" asp-action="Analytics" class="menu-link @IsActive("Analytics")">Analytics</a>
