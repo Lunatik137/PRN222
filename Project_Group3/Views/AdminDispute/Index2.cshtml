@@ -1,35 +1,32 @@
-﻿@model List<Project_Group3.Models.OrderTable>
+﻿@model List<Dispute>
 @using Microsoft.AspNetCore.Http
-
 @{
-    ViewData["Title"] = "Order Management";
+    ViewData["Title"] = "Dispute Management";
     var username = Context.Session.GetString("Username") ?? "Admin";
 }
 
 <div class="admin-page-wrapper">
     <div class="dashboard-shell">
-
-        <!-- SIDEBAR -->
         <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
 
-        <!-- CONTENT -->
         <main class="dashboard-content">
 
             <!-- HEADER -->
             <header class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                 <div>
-                    <h1 class="h3 mb-1">Order Management</h1>
+                    <h1 class="h3 mb-1">Dispute Management</h1>
                     <p class="text-muted mb-0">
-                        Manage all orders in system. Signed in as <strong>@username</strong>
+                        Manage customer disputes. Signed in as <strong>@username</strong>
                     </p>
                 </div>
+
+                <a href="/Admin/Dashboard" class="btn btn-secondary">
+                    ← Dashboard
+                </a>
             </header>
 
-         
-
-            <!-- CARD -->
+            <!-- TABLE -->
             <section class="card border-0 shadow-sm">
-
                 <div class="card-body">
 
                     <div class="table-responsive">
@@ -38,9 +35,9 @@
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>Buyer</th>
-                                    <th>Date</th>
-                                    <th>Total</th>
+                                    <th>Order</th>
+                                    <th>User</th>
+                                    <th>Description</th>
                                     <th>Status</th>
                                     <th class="text-end">Action</th>
                                 </tr>
@@ -52,52 +49,43 @@
                                 {
                                     <tr>
                                         <td colspan="6" class="text-center text-muted py-4">
-                                            No orders found.
+                                            No disputes found
                                         </td>
                                     </tr>
                                 }
                                 else
                                 {
-                                    foreach (var o in Model)
+                                    foreach (var d in Model)
                                     {
-                                        var status = (o.status ?? "").ToUpper();
-
-                                        var badge = status switch
+                                        var statusClass = d.status switch
                                         {
-                                            "PAID" => "bg-primary",
-                                            "SHIPPING" => "bg-info",
-                                            "DELIVERED" => "bg-success",
-                                            "REFUNDED" => "bg-warning text-dark",
-                                            "CANCELLED" => "bg-danger",
-                                            "PENDING" => "bg-secondary",
+                                            "PENDING" => "bg-warning text-dark",
+                                            "IN_PROGRESS" => "bg-info",
+                                            "RESOLVED" => "bg-success",
+                                            "REJECTED" => "bg-danger",
                                             _ => "bg-secondary"
                                         };
 
                                         <tr>
-                                            <td><b>#@o.id</b></td>
+                                            <td><b>#@d.id</b></td>
 
-                                            <td>
-                                                <div>
-                                                    <b>@o.buyer?.username</b><br />
-                                                    <small class="text-muted">Buyer</small>
-                                                </div>
+                                            <td>Order #@d.orderId</td>
+
+                                            <td>@d.raisedByNavigation?.username</td>
+
+                                            <td style="max-width:250px;">
+                                                @d.description
                                             </td>
 
                                             <td>
-                                                @o.orderDate?.ToString("dd/MM/yyyy")
-                                            </td>
-
-                                            <td>
-                                                <b>$@o.totalPrice?.ToString("N0")</b>
-                                            </td>
-
-                                            <td>
-                                                <span class="badge @badge">@status</span>
+                                                <span class="badge @statusClass">
+                                                    @d.status
+                                                </span>
                                             </td>
 
                                             <td class="text-end">
-                                                <a class="btn btn-sm btn-outline-primary"
-                                                   href="/AdminOrder/Details/@o.id">
+                                                <a href="/AdminDispute/Details/@d.id"
+                                                   class="btn btn-sm btn-outline-primary">
                                                     View
                                                 </a>
                                             </td>
@@ -111,7 +99,6 @@
                     </div>
 
                 </div>
-
             </section>
 
         </main>

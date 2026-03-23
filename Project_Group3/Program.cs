@@ -9,9 +9,12 @@ namespace Project_Group3
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // Add services to the container.   
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllersWithViews();
+
+            builder.Services.AddSignalR();
+
             builder.Services.AddSession();
             builder.Services.AddSignalR();
 
@@ -53,7 +56,7 @@ namespace Project_Group3
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
-
+            app.MapHub<NotificationHub>("/notificationHub");
             app.Run();
         }
     }
