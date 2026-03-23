@@ -36,10 +36,10 @@ public class AdminOrderController : Controller
     {
         _orderRepo.UpdateOrderStatus(id, status);
 
-        // lấy tên admin đang login
+        
         var adminName = HttpContext.Session.GetString("Username") ?? "Admin";
 
-        // gửi realtime
+       
         await _hub.Clients.All.SendAsync("OrderUpdated",
             $"{adminName} updated Order #{id} → {status}");
 
