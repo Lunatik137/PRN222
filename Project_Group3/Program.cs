@@ -1,4 +1,5 @@
 using Microsoft.OpenApi.Models;
+using Project_Group3.Hubs;
 
 namespace Project_Group3
 {
@@ -8,9 +9,14 @@ namespace Project_Group3
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // Add services to the container.   
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllersWithViews();
+
+            builder.Services.AddSignalR();
+
+            builder.Services.AddSession();
+            builder.Services.AddSignalR();
 
             builder.Services.AddSwaggerGen(c =>
             {
@@ -39,15 +45,18 @@ namespace Project_Group3
 
             app.UseHttpsRedirection();
             app.UseRouting();
+            app.UseSession();
 
             app.UseAuthorization();
 
             app.MapStaticAssets();
+            app.MapControllers();
+            app.MapHub<AdminNotificationHub>("/hubs/admin-notifications");
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
-
+            app.MapHub<NotificationHub>("/notificationHub");
             app.Run();
         }
     }

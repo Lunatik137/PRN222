@@ -1,0 +1,19 @@
+﻿@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = ViewData["SectionTitle"];
+    var username = Context.Session.GetString("Username") ?? "Admin";
+}
+
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
+
+        <main class="dashboard-content section-page">
+            <div class="section-placeholder">
+                <h1>@ViewData["SectionTitle"]</h1>
+                <p>Hello @username, this module is prepared for detailed management workflows. Use the left sidebar to switch between admin areas.</p>
+                <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-indigo">Back to Dashboard</a>
+            </div>
+        </main>
+    </div>
+</div>

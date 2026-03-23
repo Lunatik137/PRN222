@@ -1,0 +1,556 @@
+@model Project_Group3.ViewModel.DashboardViewModel
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    var username = Context.Session.GetString("Username") ?? "Admin";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isSuperAdmin = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
+}
+<div id="notificationBox"
+     style="position: fixed; top:20px; right:20px; z-index:9999;"></div>
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
+
+        <main class="dashboard-content hub-dashboard">
+            <header class="hub-header mb-4">
+                <div>
+                    <h1 class="hub-title mb-1">Admin Dashboard</h1>
+                    <p class="hub-subtitle mb-0">Overview of key system statistics</p>
+                </div>
+                <div class="hub-header-actions">
+                    <button type="button" class="btn btn-outline-hub btn-sm" disabled>Export Report (Coming soon)</button>
+                    <div class="hub-user small text-muted">Signed in as <strong>@username</strong></div>
+                </div>
+            </header>
+
+            <section class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card hub-kpi-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="hub-kpi-label">Total Users</span>
+                                <span class="hub-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 19a6 6 0 0 0-12 0m15 0h3m-3 0a6 6 0 0 0-3-5.2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm9 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                                    </svg>
+                                </span>
+                            </div>
+                            <h2 class="hub-kpi-value mb-0">@Model.TotalUsers.ToString("N0")</h2>
+                            <small class="hub-kpi-note">Real-time DB metric</small>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card hub-kpi-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="hub-kpi-label">Total Products</span>
+                                <span class="hub-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m3 7 9-4 9 4m-18 0 9 4m-9-4v10l9 4m9-14-9 4m9-4v10l-9 4m0-10v10" />
+                                    </svg>
+                                </span>
+                            </div>
+                            <h2 class="hub-kpi-value mb-0">@Model.TotalProducts.ToString("N0")</h2>
+                            <small class="hub-kpi-note">Real-time DB metric</small>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card hub-kpi-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="hub-kpi-label">Total Orders</span>
+                                <span class="hub-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6h2l1.2 8.2A2 2 0 0 0 8.2 16H17a2 2 0 0 0 2-1.6L21 8H7m2 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm10 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                                    </svg>
+                                </span>
+                            </div>
+                            <h2 class="hub-kpi-value mb-0">@Model.TotalOrders.ToString("N0")</h2>
+                            <small class="hub-kpi-note">Real-time DB metric</small>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="row g-3 mb-3">
+                <div class="col-12 col-xl-7">
+                    <article class="card hub-panel h-100">
+                        <div class="card-body">
+                            <div class="hub-panel-head">
+                                <h3 class="h5 mb-0">Orders Trend</h3>
+                                <span class="badge hub-badge">Demo chart</span>
+                            </div>
+                            <p class="hub-panel-note">Placeholder visual until analytics data wiring is implemented.</p>
+                            <div class="hub-line-chart" aria-hidden="true">
+                                <svg viewBox="0 0 400 170" preserveAspectRatio="none">
+                                    <polyline points="10,140 60,120 110,128 160,96 210,100 260,72 310,84 360,46" />
+                                </svg>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-5">
+                    <article class="card hub-panel h-100">
+                        <div class="card-body">
+                            <div class="hub-panel-head">
+                                <h3 class="h5 mb-0">New Users Overview</h3>
+                                <span class="badge hub-badge">Demo chart</span>
+                            </div>
+                            <p class="hub-panel-note">Placeholder bars for upcoming user-growth analytics.</p>
+                            <div class="hub-bar-chart" aria-hidden="true">
+                                <span style="height:42%"></span>
+                                <span style="height:58%"></span>
+                                <span style="height:52%"></span>
+                                <span style="height:70%"></span>
+                                <span style="height:66%"></span>
+                                <span style="height:82%"></span>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card hub-panel h-100">
+                        <div class="card-body">
+                            <div class="hub-panel-head">
+                                <h3 class="h5 mb-0">Category Distribution</h3>
+                                <span class="badge hub-badge">Demo chart</span>
+                            </div>
+                            <p class="hub-panel-note">Sample breakdown for layout preview.</p>
+                            <div class="hub-donut-wrap">
+                                <div class="hub-donut" aria-hidden="true"></div>
+                                <ul class="hub-legend list-unstyled mb-0">
+                                    <li><i class="dot dot-1"></i> Electronics 38%</li>
+                                    <li><i class="dot dot-2"></i> Fashion 27%</li>
+                                    <li><i class="dot dot-3"></i> Home 21%</li>
+                                    <li><i class="dot dot-4"></i> Other 14%</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card hub-panel h-100">
+                        <div class="card-body">
+                            <div class="hub-panel-head">
+                                <h3 class="h5 mb-0">Recent Activities</h3>
+                                <span class="badge hub-badge">Demo data</span>
+                            </div>
+                            <ul class="hub-list list-unstyled mb-0 mt-2">
+                                <li>
+                                    <span class="bullet"></span>
+                                    New seller account approved
+                                    <small>5 mins ago</small>
+                                </li>
+                                <li>
+                                    <span class="bullet"></span>
+                                    Product report submitted
+                                    <small>22 mins ago</small>
+                                </li>
+                                <li>
+                                    <span class="bullet"></span>
+                                    Order status manually updated
+                                    <small>1 hour ago</small>
+                                </li>
+                                <li>
+                                    <span class="bullet"></span>
+                                    Refund request opened
+                                    <small>2 hours ago</small>
+                                </li>
+                            </ul>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <article class="card hub-panel h-100">
+                        <div class="card-body">
+                            <div class="hub-panel-head">
+                                <h3 class="h5 mb-0">Admin Alerts</h3>
+                                <span class="badge hub-badge">Demo data</span>
+                            </div>
+                            <div class="table-responsive mt-2">
+                                <table class="table table-sm align-middle mb-0 hub-alert-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Alert</th>
+                                            <th class="text-end">Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>18 products flagged today</td>
+                                            <td class="text-end"><span class="pill pill-warn">Warning</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Unusual login activity detected</td>
+                                            <td class="text-end"><span class="pill pill-danger">High</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Payment queue delay > 5 mins</td>
+                                            <td class="text-end"><span class="pill pill-warn">Warning</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <article class="card hub-panel h-100">
+                        <div class="card-body">
+                            <div class="hub-panel-head">
+                                <h3 class="h5 mb-0">Quick Actions</h3>
+                                <span class="badge hub-badge">Ready</span>
+                            </div>
+                            <div class="d-grid gap-2 mt-3">
+                                <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-hub">Approve new users</a>
+                                <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
+                                @if (isSuperAdmin)
+                                {
+                                    <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
+                                }
+                                <a asp-controller="Admin" asp-action="ComplaintsDisputes" class="btn btn-hub-outline">View complaints</a>                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Monitor system health</a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<style>
+    .hub-dashboard {
+        background: #f7f7fc;
+    }
+
+    .hub-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .hub-title {
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: #1f1b3d;
+    }
+
+    .hub-subtitle {
+        color: #6b6b82;
+    }
+
+    .hub-header-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .btn-outline-hub {
+        border-color: #c8c2ff;
+        color: #5b44d6;
+        background: #fff;
+    }
+
+    .btn-outline-hub:hover {
+        border-color: #5b44d6;
+        color: #4a33c5;
+        background: #f5f2ff;
+    }
+
+    .hub-kpi-card {
+        border: 1px solid #ebe7ff;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(74, 51, 197, 0.08);
+        transition: transform .18s ease, box-shadow .18s ease;
+        background: #fff;
+    }
+
+    .hub-kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(74, 51, 197, 0.12);
+    }
+
+    .hub-kpi-label {
+        color: #6f6a8b;
+        font-size: .86rem;
+        font-weight: 600;
+    }
+
+    .hub-kpi-value {
+        color: #1f1b3d;
+        font-size: 2.2rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .hub-kpi-note {
+        color: #8d88a8;
+        font-size: .76rem;
+        font-weight: 500;
+    }
+
+    .hub-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: #f1edff;
+        color: #5b44d6;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hub-icon svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .hub-panel {
+        border: 1px solid #ece8ff;
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(43, 34, 94, 0.06);
+        background: #fff;
+    }
+
+    .hub-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .hub-badge {
+        background: #f2efff;
+        color: #5b44d6;
+        border: 1px solid #ddd4ff;
+        font-weight: 600;
+    }
+
+    .hub-panel-note {
+        margin: 10px 0 0;
+        color: #7a7695;
+        font-size: .9rem;
+    }
+
+    .hub-line-chart {
+        margin-top: 10px;
+        height: 170px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #faf9ff 0%, #f3efff 100%);
+        padding: 8px;
+    }
+
+    .hub-line-chart svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .hub-line-chart polyline {
+        fill: none;
+        stroke: #5b44d6;
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .hub-bar-chart {
+        margin-top: 10px;
+        height: 170px;
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 10px;
+        background: #faf9ff;
+    }
+
+    .hub-bar-chart span {
+        flex: 1;
+        border-radius: 8px 8px 0 0;
+        background: linear-gradient(180deg, #7b61ff 0%, #5b44d6 100%);
+    }
+
+    .hub-donut-wrap {
+        margin-top: 10px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 14px;
+        align-items: center;
+    }
+
+    .hub-donut {
+        width: 116px;
+        height: 116px;
+        border-radius: 50%;
+        background: conic-gradient(#5b44d6 0 38%, #8d7bff 38% 65%, #b4a7ff 65% 86%, #ddd6ff 86% 100%);
+        position: relative;
+    }
+
+    .hub-donut::after {
+        content: '';
+        position: absolute;
+        inset: 24px;
+        background: #fff;
+        border-radius: 50%;
+    }
+
+    .hub-legend li {
+        margin-bottom: 6px;
+        color: #5f5a7d;
+        font-size: .86rem;
+    }
+
+    .dot {
+        width: 9px;
+        height: 9px;
+        display: inline-block;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+
+    .dot-1 { background: #5b44d6; }
+    .dot-2 { background: #8d7bff; }
+    .dot-3 { background: #b4a7ff; }
+    .dot-4 { background: #ddd6ff; }
+
+    .hub-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0ecff;
+        color: #4f4a6c;
+        font-size: .9rem;
+    }
+
+    .hub-list li:last-child {
+        border-bottom: none;
+    }
+
+    .hub-list small {
+        color: #8d88a8;
+    }
+
+    .bullet {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #5b44d6;
+        display: inline-block;
+        margin-right: 8px;
+        flex: 0 0 auto;
+    }
+
+    .hub-alert-table th {
+        color: #7c7698;
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+    .hub-alert-table td {
+        color: #4f4a6c;
+    }
+
+    .pill {
+        display: inline-block;
+        font-size: .72rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-weight: 600;
+    }
+
+    .pill-warn {
+        background: #fff4d9;
+        color: #a76400;
+    }
+
+    .pill-danger {
+        background: #ffe2e2;
+        color: #c62828;
+    }
+
+    .btn-hub {
+        background: #5b44d6;
+        border: 1px solid #5b44d6;
+        color: #fff;
+    }
+
+    .btn-hub:hover {
+        background: #4a33c5;
+        border-color: #4a33c5;
+        color: #fff;
+    }
+
+    .btn-hub-outline {
+        background: #f5f2ff;
+        border: 1px solid #d4ccff;
+        color: #4a33c5;
+    }
+
+    .btn-hub-outline:hover {
+        background: #ebe5ff;
+        border-color: #c3b7ff;
+        color: #3f2ab2;
+    }
+
+    @@media (max-width: 991.98px) {
+        .hub-header {
+            flex-direction: column;
+        }
+
+        .hub-header-actions {
+            align-items: flex-start;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .hub-kpi-value {
+            font-size: 1.9rem;
+        }
+
+        .hub-donut-wrap {
+            grid-template-columns: 1fr;
+            justify-items: center;
+        }
+
+        .hub-legend {
+            width: 100%;
+        }
+    }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+<script>
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/notificationHub")
+        .build();
+
+    connection.on("OrderUpdated", function (message) {
+
+        const box = document.getElementById("notificationBox");
+
+        const noti = document.createElement("div");
+        noti.className = "alert alert-info shadow";
+        noti.innerText = message;
+
+        box.appendChild(noti);
+
+        setTimeout(() => {
+            noti.remove();
+        }, 4000);
+    });
+
+    connection.start();
+</script>
