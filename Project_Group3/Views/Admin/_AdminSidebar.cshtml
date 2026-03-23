@@ -11,10 +11,6 @@
     <nav class="menu list-unstyled">
         <a asp-controller="Admin" asp-action="Dashboard" class="menu-link @IsActive("Dashboard")">Dashboard</a>
         <a asp-controller="Admin" asp-action="UserManagement" class="menu-link @IsActive("UserManagement")">User Management</a>
-
-        <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("ProductModeration")">Product Moderation</a>
-       
-
         @if (isSuperAdmin)
         {
             <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("ProductModeration")">Product Moderation</a>
