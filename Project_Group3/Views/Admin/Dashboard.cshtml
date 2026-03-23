@@ -4,7 +4,8 @@
     ViewData["Title"] = "Admin Dashboard";
     var username = Context.Session.GetString("Username") ?? "Admin";
 }
-
+<div id="notificationBox"
+     style="position: fixed; top:20px; right:20px; z-index:9999;"></div>
 <div class="admin-page-wrapper">
     <div class="dashboard-shell">
         <partial name="_AdminSidebar" />
@@ -525,3 +526,26 @@
         }
     }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+<script>
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/notificationHub")
+        .build();
+
+    connection.on("OrderUpdated", function (message) {
+
+        const box = document.getElementById("notificationBox");
+
+        const noti = document.createElement("div");
+        noti.className = "alert alert-info shadow";
+        noti.innerText = message;
+
+        box.appendChild(noti);
+
+        setTimeout(() => {
+            noti.remove();
+        }, 4000);
+    });
+
+    connection.start();
+</script>
