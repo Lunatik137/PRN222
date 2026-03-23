@@ -76,7 +76,7 @@ public class AccountController(
             HttpContext.Session.SetString("Role", user.role ?? string.Empty);
 
             TempData["LoginMessage"] = $"Hello, {user.username}!";
-            return RedirectToAction("Dashboard", "Admin");
+            return RedirectToAction("Dashboard", "AdminDashboard");
         }
         catch (TaskCanceledException)
         {
