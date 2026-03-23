@@ -36,6 +36,8 @@ public interface IUserRepository
 
     Task<bool> ApproveAsync(int id, CancellationToken cancellationToken = default);
 
+    Task<bool> RejectAsync(int id, string reason, CancellationToken cancellationToken = default);
+
     Task<bool> LockAsync(int id, string reason, CancellationToken cancellationToken = default);
 
     Task<bool> UnlockAsync(int id, CancellationToken cancellationToken = default);
