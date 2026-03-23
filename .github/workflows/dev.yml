@@ -1,0 +1,19 @@
+name: Dev CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  cicd-pipeline:
+    uses: ./.github/workflows/template.yml
+    permissions: 
+      security-events: write
+    with:
+      environment: dev
+      aws-region: us-east-1
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  
