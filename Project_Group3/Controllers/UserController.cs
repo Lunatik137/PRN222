@@ -32,7 +32,12 @@ namespace Project_Group3.Controllers
         public async Task<ActionResult<User>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
         {
             var user = await _userRepository.GetByCredentialsAsync(request.Username, request.Password, cancellationToken);
-            return user is null ? Unauthorized() : Ok(user);
+            if (user is null || user.isLocked || !user.isApproved)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(user);
         }
 
         [HttpGet("by-email")]
@@ -70,6 +75,10 @@ namespace Project_Group3.Controllers
             => await _userRepository.ApproveAsync(id, cancellationToken) ? NoContent() : NotFound();
 
         public sealed record LockRequest(string Reason);
+
+        [HttpPost("reject/{id:int}")]
+        public async Task<IActionResult> Reject(int id, [FromBody] LockRequest request, CancellationToken cancellationToken)
+            => await _userRepository.RejectAsync(id, request.Reason, cancellationToken) ? NoContent() : NotFound();
 
         [HttpPost("lock/{id:int}")]
         public async Task<IActionResult> Lock(int id, [FromBody] LockRequest request, CancellationToken cancellationToken)

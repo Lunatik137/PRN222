@@ -8,6 +8,11 @@
     <div class="col-md-5">
         <h2 class="mb-4">Login</h2>
 
+        @if (TempData["LoginMessage"] is string loginMessage)
+        {
+            <div class="alert alert-success">@loginMessage</div>
+        }
+
         <form asp-action="Login" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -23,7 +28,12 @@
                 <span asp-validation-for="Password" class="text-danger"></span>
             </div>
 
-            <button type="submit" class="btn btn-primary">Login</button>
+            <div class="mb-3">
+                <span>Don't have an account? </span>
+                <a asp-controller="Account" asp-action="Register">Register here</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Sign in</button>
             <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary ms-2">Back to home</a>
         </form>
     </div>
