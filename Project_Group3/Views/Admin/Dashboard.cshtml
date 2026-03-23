@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Admin Dashboard";
     var username = Context.Session.GetString("Username") ?? "Admin";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isSuperAdmin = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="admin-page-wrapper">
@@ -211,8 +213,11 @@
                             <div class="d-grid gap-2 mt-3">
                                 <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-hub">Approve new users</a>
                                 <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
-                                <a asp-controller="Admin" asp-action="ComplaintsDisputes" class="btn btn-hub-outline">View complaints</a>
-                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Monitor system health</a>
+                                @if (isSuperAdmin)
+                                {
+                                    <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
+                                }
+                                <a asp-controller="Admin" asp-action="ComplaintsDisputes" class="btn btn-hub-outline">View complaints</a>                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Monitor system health</a>
                             </div>
                         </div>
                     </article>
