@@ -1,4 +1,5 @@
-﻿using Project_Group3.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Project_Group3.Models;
 
 public class OrderRepository : IOrderRepository
 {
@@ -13,6 +14,7 @@ public class OrderRepository : IOrderRepository
     public List<OrderTable> GetAllOrders()
     {
         return _context.OrderTables
+            .Include(o => o.buyer)
             .OrderByDescending(o => o.orderDate)
             .ToList();
     }
@@ -27,6 +29,7 @@ public class OrderRepository : IOrderRepository
     {
         return _context.OrderItems
             .Where(o => o.orderId == orderId)
+            .Include(o => o.product)
             .ToList();
     }
 
