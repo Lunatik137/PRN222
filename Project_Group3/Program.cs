@@ -50,11 +50,8 @@ namespace PRN222_Group3
                 options.Cookie.Name = ".PRN222.Session"; // Consistent session cookie name
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             });
-            builder.Services.AddDbContext<CloneEbayDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectionStringDB")));
-
-            // 2. Đăng ký Repository (để "tiêm" vào Controller)
-            builder.Services.AddScoped<StoresRepository>();
+            // 2. Đăng ký Repository (để "tiêm" vào Controller)
+            builder.Services.AddScoped<StoresRepository>();
             builder.Services.AddScoped<ReturnRequestAdminRepository>();
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(opt =>
@@ -68,8 +65,9 @@ namespace PRN222_Group3
 
             builder.Services.AddAuthorization(opts =>
             {
-                opts.AddPolicy("UserManageRead", p => p.RequireRole("SuperAdmin", "Moderator", "Support", "Ops"));
+                opts.AddPolicy("UserManageRead", p => p.RequireRole("SuperAdmin", "Moderator", "Monitor", "Support", "Ops"));
                 opts.AddPolicy("UserManageWrite", p => p.RequireRole("SuperAdmin", "Moderator"));
+                opts.AddPolicy("ReturnAndSystemNotify", p => p.RequireRole("SuperAdmin", "Moderator", "Monitor", "Support", "Ops"));
             });
 
             // Dependency Injection registrations

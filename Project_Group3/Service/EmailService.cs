@@ -1,6 +1,7 @@
 using MailKit.Net.Smtp;
 using MimeKit;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace PRN222_Group3.Service
 {
@@ -13,16 +14,33 @@ namespace PRN222_Group3.Service
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
+        private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration configuration)
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
         {
             _configuration = configuration;
+            _logger = logger;
+        }
+
+        private bool ShouldSimulateOnly()
+        {
+            var v = _configuration["EmailSettings:SimulateEmailSending"];
+            return string.Equals(v, "true", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(v, "1", StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
         {
             try
             {
+                if (ShouldSimulateOnly())
+                {
+                    _logger.LogWarning(
+                        "[SimulateEmail] To={To} | Subject={Subject} | BodyLength={Len}",
+                        toEmail, subject, body?.Length ?? 0);
+                    return true;
+                }
+
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(
                     _configuration["EmailSettings:SenderName"] ?? "PRN222 Group3",
@@ -60,8 +78,7 @@ namespace PRN222_Group3.Service
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"Email sending failed: {ex.Message}");
+                _logger.LogError(ex, "Email sending failed for {To}", toEmail);
                 return false;
             }
         }

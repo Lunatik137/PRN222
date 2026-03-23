@@ -5,7 +5,7 @@ using PRN222_Group3.Views.ViewModel;
 
 namespace PRN222_Group3.Controllers;
 
-[Authorize(Policy = "UserManageWrite")]
+[Authorize(Policy = "ReturnAndSystemNotify")]
 public class ReturnRequestAdminController : Controller
 {
     private readonly ReturnRequestAdminRepository _returnRequestAdminRepository;

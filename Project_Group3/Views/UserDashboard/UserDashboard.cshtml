@@ -1,4 +1,4 @@
-﻿@model IEnumerable<PRN222_Group3.Models.User>
+@model IEnumerable<PRN222_Group3.Models.User>
 @{
     ViewData["Title"] = "User Management";
     bool canWrite = User.IsInRole("SuperAdmin") || User.IsInRole("Moderator");
@@ -10,6 +10,30 @@
 
 <div class="container mt-4">
     <h2 class="mb-4 text-center fw-bold">User Management</h2>
+
+    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Moderator") || User.IsInRole("Monitor") || User.IsInRole("Support") || User.IsInRole("Ops"))
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card border-primary h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title"><i class="bi bi-arrow-return-left text-primary"></i> Xét duyệt hoàn trả đơn hàng</h5>
+                        <p class="card-text text-muted small mb-3">Danh sách yêu cầu hoàn trả, duyệt / từ chối (task Admin 1.4).</p>
+                        <a class="btn btn-primary mt-auto" asp-controller="ReturnRequestAdmin" asp-action="Index">Mở trang hoàn trả</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-warning h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title"><i class="bi bi-megaphone text-warning"></i> Email cảnh báo hệ thống</h5>
+                        <p class="card-text text-muted small mb-3">Gửi thông báo tới toàn bộ user hoặc theo vai trò (task Admin 2.5).</p>
+                        <a class="btn btn-warning mt-auto" asp-controller="Email" asp-action="Send">Mở gửi email</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <!-- 2FA Security Card -->
     <div class="card shadow-sm mb-4 border-info">

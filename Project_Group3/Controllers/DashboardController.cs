@@ -1,4 +1,4 @@
-﻿using ClosedXML.Excel;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PRN222_Group3.Models;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace PRN222_Group3.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Support,Moderator,Ops")]
+    [Authorize(Roles = "SuperAdmin,Support,Moderator,Ops,Monitor")]
     public class DashboardController : Controller
     {
         private readonly StatisticsRepository _statisticsRepo;

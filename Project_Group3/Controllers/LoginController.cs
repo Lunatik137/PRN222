@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -105,6 +105,7 @@ namespace OnlineMarketPlace.Controllers
 
             if (user.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
                 || user.Role.Equals("Moderator", StringComparison.OrdinalIgnoreCase)
+                || user.Role.Equals("Monitor", StringComparison.OrdinalIgnoreCase)
                 || user.Role.Equals("Support", StringComparison.OrdinalIgnoreCase)
                 || user.Role.Equals("Ops", StringComparison.OrdinalIgnoreCase))
             {

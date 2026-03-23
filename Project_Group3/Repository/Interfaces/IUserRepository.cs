@@ -1,6 +1,6 @@
-using Project_Group3.Models;
+using PRN222_Group3.Models;
 
-namespace Project_Group3.Repository.Interfaces;
+namespace PRN222_Group3.Repository.Interfaces;
 
 public interface IUserRepository
 {

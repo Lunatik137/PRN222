@@ -148,7 +148,7 @@
 					<h3 class="text-primary"><i class="fa fa-hashtag me-2"></i>DASHMIN</h3>
 				</a>
 				<div class="navbar-nav w-100">
-					@if (User.IsInRole("SuperAdmin") || User.IsInRole("Moderator"))
+					@if (User.IsInRole("SuperAdmin") || User.IsInRole("Moderator") || User.IsInRole("Monitor") || User.IsInRole("Support") || User.IsInRole("Ops"))
 					{
 
 						<a class="nav-item nav-link active" asp-area="" asp-controller="UserDashboard"

@@ -2,9 +2,9 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Project_Group3.Models;
+using PRN222_Group3.Models;
 
-namespace Project_Group3;
+namespace PRN222_Group3;
 
 public static class DependencyInjection
 {

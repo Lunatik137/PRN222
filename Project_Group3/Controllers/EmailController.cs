@@ -6,9 +6,14 @@ using PRN222_Group3.Service;
 
 namespace PRN222_Group3.Controllers
 {
-    [Authorize(Policy = "UserManageWrite")]
+    [Authorize(Policy = "ReturnAndSystemNotify")]
     public class EmailController : Controller
     {
+        private static readonly List<string> EmailTargetRoles =
+        [
+            "All", "Buyer", "Seller", "SuperAdmin", "Moderator", "Monitor", "Support", "Ops"
+        ];
+
         private readonly IEmailService _emailService;
         private readonly UserRepository _userRepository;
 
@@ -22,115 +27,95 @@ namespace PRN222_Group3.Controllers
         [HttpGet]
         public IActionResult Send()
         {
-            // Prepare roles for dropdown
-            ViewBag.Roles = new List<string> { "All", "SuperAdmin", "Moderator", "Support", "Ops" };
+            ViewBag.Roles = EmailTargetRoles;
             return View();
         }
 
         // POST: /Email/Send
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Send(EmailRequest request)
+        public async Task<IActionResult> Send(EmailRequest request, string actionType = "Send")
         {
+            ViewBag.Roles = EmailTargetRoles;
+
+            if (string.IsNullOrWhiteSpace(request.ToRole))
+            {
+                TempData["Message"] = "Vui lòng chọn nhóm người nhận.";
+                TempData["MessageType"] = "error";
+                return View(request);
+            }
+
+            var recipients = GetRecipientsByRole(request.ToRole);
+            ViewBag.Recipients = recipients;
+            ViewBag.RecipientCount = recipients.Count;
+
+            if (actionType.Equals("Preview", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!recipients.Any())
+                {
+                    TempData["Message"] = $"Không có người dùng nào khớp nhóm: {request.ToRole}";
+                    TempData["MessageType"] = "error";
+                }
+                return View(request);
+            }
+
             if (string.IsNullOrWhiteSpace(request.Subject))
             {
-                TempData["Message"] = "Email subject is required.";
+                TempData["Message"] = "Vui lòng nhập tiêu đề email.";
                 TempData["MessageType"] = "error";
-                ViewBag.Roles = new List<string> { "All", "SuperAdmin", "Moderator", "Support", "Ops" };
                 return View(request);
             }
 
             if (string.IsNullOrWhiteSpace(request.Body))
             {
-                TempData["Message"] = "Email content is required.";
+                TempData["Message"] = "Vui lòng nhập nội dung (cảnh báo / thông báo hệ thống).";
                 TempData["MessageType"] = "error";
-                ViewBag.Roles = new List<string> { "All", "SuperAdmin", "Moderator", "Support", "Ops" };
                 return View(request);
             }
 
-            if (string.IsNullOrWhiteSpace(request.ToRole))
+            if (!recipients.Any())
             {
-                TempData["Message"] = "Please select a recipient role.";
+                TempData["Message"] = $"Không có người dùng nào khớp nhóm: {request.ToRole}";
                 TempData["MessageType"] = "error";
-                ViewBag.Roles = new List<string> { "All", "SuperAdmin", "Moderator", "Support", "Ops" };
                 return View(request);
             }
 
             try
             {
-                // Get users based on selected role
-                var users = _userRepository.GetUsers();
-                List<string> recipientEmails = new List<string>();
-
-                if (request.ToRole == "All")
-                {
-                    recipientEmails = users
-                        .Where(u => !string.IsNullOrEmpty(u.Email))
-                        .Select(u => u.Email!)
-                        .ToList();
-                }
-                else
-                {
-                    recipientEmails = users
-                        .Where(u => u.Role == request.ToRole && !string.IsNullOrEmpty(u.Email))
-                        .Select(u => u.Email!)
-                        .ToList();
-                }
-
-                if (!recipientEmails.Any())
-                {
-                    TempData["Message"] = $"No users found with role: {request.ToRole}";
-                    TempData["MessageType"] = "error";
-                    ViewBag.Roles = new List<string> { "All", "SuperAdmin", "Moderator", "Support", "Ops" };
-                    return View(request);
-                }
+                var recipientEmails = recipients.Select(u => u.Email!).ToList();
 
                 // Send emails
                 var result = await _emailService.SendBulkEmailAsync(recipientEmails, request.Subject, request.Body);
 
                 if (result)
                 {
-                    TempData["Message"] = $"Email sent successfully to {recipientEmails.Count} user(s)!";
+                    TempData["Message"] = $"Đã gửi thông báo tới {recipientEmails.Count} địa chỉ email (hoặc chế độ mô phỏng đang bật — xem log console).";
                     TempData["MessageType"] = "success";
                     return RedirectToAction("Send");
                 }
                 else
                 {
-                    TempData["Message"] = "Failed to send email. Please check email configuration.";
+                    TempData["Message"] = "Gửi email thất bại. Kiểm tra cấu hình SMTP hoặc bật SimulateEmailSending trong Development.";
                     TempData["MessageType"] = "error";
                 }
             }
             catch (Exception ex)
             {
-                TempData["Message"] = $"Error sending email: {ex.Message}";
+                TempData["Message"] = $"Lỗi khi gửi email: {ex.Message}";
                 TempData["MessageType"] = "error";
             }
 
-            ViewBag.Roles = new List<string> { "All", "SuperAdmin", "Moderator", "Support", "Ops" };
             return View(request);
         }
 
-        // GET: /Email/Preview - Preview recipients
-        [HttpGet]
-        public IActionResult GetRecipients(string role)
+        private List<User> GetRecipientsByRole(string role)
         {
             var users = _userRepository.GetUsers();
-            List<User> recipients;
-
             if (role == "All")
             {
-                recipients = users.Where(u => !string.IsNullOrEmpty(u.Email)).ToList();
+                return users.Where(u => !string.IsNullOrEmpty(u.Email)).ToList();
             }
-            else
-            {
-                recipients = users.Where(u => u.Role == role && !string.IsNullOrEmpty(u.Email)).ToList();
-            }
-
-            return Json(new
-            {
-                count = recipients.Count,
-                users = recipients.Select(u => new { u.Username, u.Email, u.Role })
-            });
+            return users.Where(u => u.Role == role && !string.IsNullOrEmpty(u.Email)).ToList();
         }
     }
 }

@@ -1,11 +1,17 @@
-@model PRN222_Group3.Models.EmailRequest
+﻿@model PRN222_Group3.Models.EmailRequest
 @{
-    ViewData["Title"] = "Send Email to Users";
+    ViewData["Title"] = "Gửi email cảnh báo / thông báo hệ thống";
+    var recipients = ViewBag.Recipients as List<PRN222_Group3.Models.User> ?? new List<PRN222_Group3.Models.User>();
+    var recipientCount = ViewBag.RecipientCount is int c ? c : recipients.Count;
+
     string RoleLabel(string r) => r switch
     {
-        "All" => "Tất cả người dùng có email (All)",
+        "All" => "Tất cả người dùng có email",
+        "Buyer" => "Người mua (Buyer)",
+        "Seller" => "Người bán (Seller)",
         "SuperAdmin" => "SuperAdmin",
         "Moderator" => "Moderator",
+        "Monitor" => "Monitor (giám sát)",
         "Support" => "Support",
         "Ops" => "Ops",
         _ => r
@@ -17,10 +23,9 @@
         <div class="col-md-10">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0"><i class="bi bi-envelope-fill"></i> Send Email to Users</h4>
+                    <h4 class="mb-0"><i class="bi bi-envelope-fill"></i> @ViewData["Title"]</h4>
                 </div>
                 <div class="card-body">
-                    <!-- Notification -->
                     @if (TempData["Message"] != null)
                     {
                         <div class="alert @(TempData["MessageType"]?.ToString() == "error" ? "alert-danger" : "alert-success") alert-dismissible fade show">
@@ -32,135 +37,109 @@
                     <form asp-action="Send" method="post" id="emailForm">
                         @Html.AntiForgeryToken()
 
-                        <!-- Recipient Role Selection -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">
-                                <i class="bi bi-people-fill"></i> Send To
+                                <i class="bi bi-people-fill"></i> Nhóm người nhận
                                 <span class="text-danger">*</span>
                             </label>
-                            <select asp-for="ToRole" class="form-select" id="roleSelect" required>
-                                <option value="">-- Select Role --</option>
+                            <select asp-for="ToRole" class="form-select" required>
+                                <option value="">-- Chọn nhóm --</option>
                                 @foreach (var role in ViewBag.Roles as List<string>)
                                 {
                                     <option value="@role">@RoleLabel(role)</option>
                                 }
                             </select>
-                            <div class="form-text">Select which users will receive this email</div>
+                            <div class="form-text">Bấm "Xem danh sách người nhận" để xem trước theo kiểu MVC.</div>
                         </div>
 
-                        <!-- Recipient Preview -->
-                        <div id="recipientPreview" class="alert alert-info d-none mb-4">
-                            <strong><i class="bi bi-info-circle"></i> Recipients:</strong>
-                            <span id="recipientCount">0</span> user(s) will receive this email
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="viewRecipientsBtn">
-                                <i class="bi bi-eye"></i> View Details
-                            </button>
-                        </div>
+                        @if (!string.IsNullOrWhiteSpace(Model?.ToRole))
+                        {
+                            <div class="alert alert-info mb-4">
+                                <strong><i class="bi bi-info-circle"></i> Người nhận:</strong>
+                                @recipientCount user(s) thuộc nhóm <strong>@RoleLabel(Model.ToRole!)</strong>
+                            </div>
+                        }
 
-                        <!-- Subject Field -->
+                        @if (recipients.Any())
+                        {
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var user in recipients)
+                                        {
+                                            <tr>
+                                                <td>@user.Username</td>
+                                                <td>@user.Email</td>
+                                                <td><span class="badge bg-secondary">@user.Role</span></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
                         <div class="mb-4">
                             <label asp-for="Subject" class="form-label fw-bold">
-                                <i class="bi bi-tag-fill"></i> Email Subject
+                                <i class="bi bi-tag-fill"></i> Tiêu đề email
                                 <span class="text-danger">*</span>
                             </label>
-                            <input asp-for="Subject" 
-                                   class="form-control" 
-                                   placeholder="Enter email subject"
+                            <input asp-for="Subject"
+                                   class="form-control"
+                                   placeholder="Nhập tiêu đề email"
                                    maxlength="200"
                                    required />
-                            <div class="form-text">Max 200 characters</div>
+                            <div class="form-text" id="subjectCounter">0/200 ký tự</div>
                         </div>
 
-                        <!-- Body/Content Field -->
                         <div class="mb-4">
                             <label asp-for="Body" class="form-label fw-bold">
-                                <i class="bi bi-file-text-fill"></i> Email Content
+                                <i class="bi bi-file-text-fill"></i> Nội dung email
                                 <span class="text-danger">*</span>
                             </label>
-                            <textarea asp-for="Body" 
-                                      class="form-control" 
+                            <textarea asp-for="Body"
+                                      class="form-control"
                                       rows="10"
-                                      placeholder="Enter your email message here. You can use HTML formatting."
+                                      placeholder="Nhập nội dung cảnh báo hoặc thông báo hệ thống."
                                       required></textarea>
                             <div class="form-text">
-                                <i class="bi bi-lightbulb"></i> Tip: You can use HTML tags for formatting (e.g., &lt;b&gt;bold&lt;/b&gt;, &lt;br&gt;)
+                                Có thể dùng HTML đơn giản: &lt;b&gt;bold&lt;/b&gt;, &lt;br&gt;...
                             </div>
                         </div>
 
-                        <!-- HTML Preview Toggle -->
                         <div class="mb-4">
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="previewToggle">
-                                <i class="bi bi-eye"></i> Preview Email
+                                <i class="bi bi-eye"></i> Xem trước nội dung email
                             </button>
                         </div>
 
-                        <!-- Preview Panel -->
                         <div id="emailPreview" class="card mb-4 d-none">
                             <div class="card-header bg-light">
-                                <strong>Email Preview</strong>
+                                <strong>Preview</strong>
                             </div>
-                            <div class="card-body" id="previewContent">
-                                <!-- Preview content will be inserted here -->
-                            </div>
+                            <div class="card-body" id="previewContent"></div>
                         </div>
 
-                        <!-- Action Buttons -->
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <a href="@Url.Action("UserDashboard", "UserDashboard")" class="btn btn-secondary">
-                                <i class="bi bi-x-circle"></i> Cancel
+                                <i class="bi bi-x-circle"></i> Quay lại
                             </a>
-                            <button type="submit" class="btn btn-primary" id="sendBtn">
-                                <i class="bi bi-send-fill"></i> Send Email
+                            <button type="submit" name="actionType" value="Preview" class="btn btn-outline-primary">
+                                <i class="bi bi-list-check"></i> Xem danh sách người nhận
+                            </button>
+                            <button type="submit" name="actionType" value="Send" class="btn btn-primary"
+                                    onclick="return confirm('Xác nhận gửi email cho nhóm đã chọn?');">
+                                <i class="bi bi-send-fill"></i> Gửi email
                             </button>
                         </div>
                     </form>
                 </div>
-            </div>
-
-            <!-- Tips Card -->
-            <div class="card shadow mt-4">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="bi bi-info-circle-fill"></i> Email Tips</h6>
-                </div>
-                <div class="card-body">
-                    <ul class="mb-0">
-                        <li><strong>All:</strong> Sends to all users in the system</li>
-                        <li><strong>Role-based:</strong> Sends only to users with the selected role</li>
-                        <li><strong>HTML Support:</strong> Use HTML tags for rich formatting</li>
-                        <li><strong>Test First:</strong> Consider sending to yourself first to verify formatting</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recipient Details Modal -->
-<div class="modal fade" id="recipientModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-people"></i> Recipient List</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recipientTableBody">
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -168,91 +147,28 @@
 
 @section Scripts {
     <script>
-        let currentRecipients = [];
+        const previewToggle = document.getElementById('previewToggle');
+        const preview = document.getElementById('emailPreview');
+        const previewContent = document.getElementById('previewContent');
+        const bodyInput = document.querySelector('textarea[name="Body"]');
+        const subjectInput = document.querySelector('input[name="Subject"]');
+        const subjectCounter = document.getElementById('subjectCounter');
 
-        // Role selection change handler
-        document.getElementById('roleSelect').addEventListener('change', function() {
-            const role = this.value;
-            if (role) {
-                fetchRecipients(role);
-            } else {
-                document.getElementById('recipientPreview').classList.add('d-none');
-            }
-        });
-
-        // Fetch recipients by role
-        function fetchRecipients(role) {
-            fetch(`/Email/GetRecipients?role=${encodeURIComponent(role)}`)
-                .then(response => response.json())
-                .then(data => {
-                    currentRecipients = data.users;
-                    document.getElementById('recipientCount').textContent = data.count;
-                    document.getElementById('recipientPreview').classList.remove('d-none');
-                })
-                .catch(error => {
-                    console.error('Error fetching recipients:', error);
-                });
-        }
-
-        // View recipients button
-        document.getElementById('viewRecipientsBtn').addEventListener('click', function() {
-            const tbody = document.getElementById('recipientTableBody');
-            tbody.innerHTML = '';
-            
-            currentRecipients.forEach(user => {
-                const row = `<tr>
-                    <td>${user.username}</td>
-                    <td>${user.email}</td>
-                    <td><span class="badge bg-secondary">${user.role}</span></td>
-                </tr>`;
-                tbody.innerHTML += row;
-            });
-
-            const modal = new bootstrap.Modal(document.getElementById('recipientModal'));
-            modal.show();
-        });
-
-        // Preview toggle
-        document.getElementById('previewToggle').addEventListener('click', function() {
-            const preview = document.getElementById('emailPreview');
-            const body = document.querySelector('textarea[name="Body"]').value;
-            
+        previewToggle.addEventListener('click', function() {
             if (preview.classList.contains('d-none')) {
-                document.getElementById('previewContent').innerHTML = body || '<em>No content to preview</em>';
+                previewContent.innerHTML = bodyInput.value || '<em>Chưa có nội dung để preview</em>';
                 preview.classList.remove('d-none');
-                this.innerHTML = '<i class="bi bi-eye-slash"></i> Hide Preview';
+                this.innerHTML = '<i class="bi bi-eye-slash"></i> Ẩn preview';
             } else {
                 preview.classList.add('d-none');
-                this.innerHTML = '<i class="bi bi-eye"></i> Preview Email';
+                this.innerHTML = '<i class="bi bi-eye"></i> Xem trước nội dung email';
             }
         });
 
-        // Form submission confirmation
-        document.getElementById('emailForm').addEventListener('submit', function(e) {
-            const role = document.getElementById('roleSelect').value;
-            const count = document.getElementById('recipientCount').textContent;
-            
-            if (role && count > 0) {
-                const confirmed = confirm(`Are you sure you want to send this email to ${count} user(s)?`);
-                if (!confirmed) {
-                    e.preventDefault();
-                }
-            }
-        });
-
-        // Character counter for subject
-        const subjectInput = document.querySelector('input[name="Subject"]');
-        if (subjectInput) {
-            const counterDiv = document.createElement('div');
-            counterDiv.className = 'form-text text-end';
-            counterDiv.id = 'subjectCounter';
-            subjectInput.parentElement.appendChild(counterDiv);
-
-            subjectInput.addEventListener('input', function() {
-                const remaining = 200 - this.value.length;
-                counterDiv.textContent = `${this.value.length}/200 characters`;
-                counterDiv.className = remaining < 20 ? 'form-text text-end text-danger' : 'form-text text-end';
-            });
+        function updateCounter() {
+            subjectCounter.textContent = `${subjectInput.value.length}/200 ký tự`;
         }
+        subjectInput.addEventListener('input', updateCounter);
+        updateCounter();
     </script>
 }
