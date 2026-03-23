@@ -119,6 +119,19 @@ public sealed class UserRepository(CloneEbayDbContext dbContext) : IUserReposito
         return await dbContext.SaveChangesAsync(cancellationToken) > 0;
     }
 
+    public async Task<bool> RejectAsync(int id, string reason, CancellationToken cancellationToken = default)
+    {
+        var u = await GetByIdAsync(id, cancellationToken);
+        if (u is null) return false;
+
+        u.isApproved = false;
+        u.isLocked = true;
+        u.lockedAt = DateTime.UtcNow;
+        u.lockedReason = reason;
+
+        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
+    }
+
     public async Task<bool> LockAsync(int id, string reason, CancellationToken cancellationToken = default)
     {
         var u = await GetByIdAsync(id, cancellationToken);

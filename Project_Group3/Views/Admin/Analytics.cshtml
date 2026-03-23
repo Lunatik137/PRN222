@@ -1,0 +1,195 @@
+@model Project_Group3.ViewModel.AnalyticsViewModel
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Analytics";
+    var username = Context.Session.GetString("Username") ?? "Admin";
+}
+
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
+
+        <main class="dashboard-content analytics-page">
+            <header class="analytics-header mb-4">
+                <div>
+                    <h1 class="analytics-title mb-1">Analytics</h1>
+                    <p class="analytics-subtitle mb-0">Performance analytics for orders, revenue, and user growth</p>
+                </div>
+                <div class="small text-muted">Signed in as <strong>@username</strong></div>
+            </header>
+
+            <section class="card border-0 shadow-sm analytics-filter mb-4">
+                <div class="card-body">
+                    <form asp-controller="AdminAnalytics" asp-action="Analytics" method="get" class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Period Type</label>
+                            <select name="periodType" class="form-select" id="periodTypeSelect">
+                                <option value="day" selected="@(Model.PeriodType == "day" ? "selected" : null)">Day</option>
+                                <option value="month" selected="@(Model.PeriodType == "month" ? "selected" : null)">Month</option>
+                                <option value="quarter" selected="@(Model.PeriodType == "quarter" ? "selected" : null)">Quarter</option>
+                                <option value="year" selected="@(Model.PeriodType == "year" ? "selected" : null)">Year</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3 filter-day">
+                            <label class="form-label">Day</label>
+                            <input type="date" class="form-control" name="day" value="@Model.Day.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-6 col-md-2 filter-month">
+                            <label class="form-label">Month</label>
+                            <select name="month" class="form-select">
+                                @for (var m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m" selected="@(Model.Month == m ? "selected" : null)">@m</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-6 col-md-2 filter-quarter">
+                            <label class="form-label">Quarter</label>
+                            <select name="quarter" class="form-select">
+                                @for (var q = 1; q <= 4; q++)
+                                {
+                                    <option value="@q" selected="@(Model.Quarter == q ? "selected" : null)">Q@q</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-6 col-md-2">
+                            <label class="form-label">Year</label>
+                            <input type="number" class="form-control" min="2000" max="2100" name="year" value="@Model.Year" />
+                        </div>
+
+                        <div class="col-6 col-md-12 col-lg-2 d-grid ms-lg-auto">
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </div>
+                    </form>
+
+                    <div class="mt-3 text-muted small">
+                        Range: <strong>@Model.RangeStart.ToString("dd MMM yyyy")</strong> to <strong>@Model.RangeEndExclusive.AddDays(-1).ToString("dd MMM yyyy")</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card border-0 shadow-sm h-100 analytics-kpi-card">
+                        <div class="card-body">
+                            <p class="text-muted mb-2">Revenue</p>
+                            <h2 class="display-6 mb-0">@Model.TotalRevenue.ToString("N2")</h2>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card border-0 shadow-sm h-100 analytics-kpi-card">
+                        <div class="card-body">
+                            <p class="text-muted mb-2">Orders</p>
+                            <h2 class="display-6 mb-0">@Model.TotalOrders.ToString("N0")</h2>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card border-0 shadow-sm h-100 analytics-kpi-card">
+                        <div class="card-body">
+                            <p class="text-muted mb-2">New Users</p>
+                            <h2 class="display-6 mb-0">@Model.NewUsers.ToString("N0")</h2>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="card border-0 shadow-sm analytics-chart-placeholder">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h3 class="h5 mb-0">Chart Area</h3>
+                        <span class="badge text-bg-light">Placeholder</span>
+                    </div>
+                    <p class="text-muted mb-3">
+                        This area is prepared for Chart.js series rendering (revenue/orders/new users trends).
+                    </p>
+                    <div class="placeholder-surface">
+                        <div class="placeholder-line"></div>
+                        <div class="placeholder-bars">
+                            <span style="height:35%"></span>
+                            <span style="height:52%"></span>
+                            <span style="height:40%"></span>
+                            <span style="height:68%"></span>
+                            <span style="height:56%"></span>
+                            <span style="height:74%"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const periodTypeSelect = document.getElementById('periodTypeSelect');
+        const dayField = document.querySelectorAll('.filter-day');
+        const monthField = document.querySelectorAll('.filter-month');
+        const quarterField = document.querySelectorAll('.filter-quarter');
+
+        function toggleFilterFields() {
+            const mode = periodTypeSelect.value;
+            dayField.forEach(x => x.style.display = mode === 'day' ? '' : 'none');
+            monthField.forEach(x => x.style.display = mode === 'month' ? '' : 'none');
+            quarterField.forEach(x => x.style.display = mode === 'quarter' ? '' : 'none');
+        }
+
+        periodTypeSelect.addEventListener('change', toggleFilterFields);
+        toggleFilterFields();
+    </script>
+}
+
+<style>
+    .analytics-page {
+        background: #f8f9fb;
+    }
+
+    .analytics-title {
+        color: #111827;
+        font-size: 1.6rem;
+    }
+
+    .analytics-subtitle {
+        color: #6b7280;
+    }
+
+    .analytics-filter,
+    .analytics-kpi-card,
+    .analytics-chart-placeholder {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+    }
+
+    .placeholder-surface {
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        padding: 16px;
+        background: #fcfdff;
+    }
+
+    .placeholder-line {
+        height: 2px;
+        background: linear-gradient(90deg, #dbeafe 0%, #93c5fd 45%, #3b82f6 100%);
+        margin-bottom: 14px;
+    }
+
+    .placeholder-bars {
+        height: 120px;
+        display: flex;
+        align-items: end;
+        gap: 8px;
+    }
+
+    .placeholder-bars span {
+        flex: 1;
+        border-radius: 8px 8px 0 0;
+        background: #dbeafe;
+    }
+</style>
