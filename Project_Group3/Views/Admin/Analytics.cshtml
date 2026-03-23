@@ -7,7 +7,7 @@
 
 <div class="admin-page-wrapper">
     <div class="dashboard-shell">
-        <partial name="_AdminSidebar" />
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
 
         <main class="dashboard-content analytics-page">
             <header class="analytics-header mb-4">
@@ -20,7 +20,7 @@
 
             <section class="card border-0 shadow-sm analytics-filter mb-4">
                 <div class="card-body">
-                    <form asp-controller="Admin" asp-action="Analytics" method="get" class="row g-3 align-items-end">
+                    <form asp-controller="AdminAnalytics" asp-action="Analytics" method="get" class="row g-3 align-items-end">
                         <div class="col-12 col-md-3">
                             <label class="form-label">Period Type</label>
                             <select name="periodType" class="form-select" id="periodTypeSelect">
