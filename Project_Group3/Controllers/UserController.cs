@@ -32,7 +32,12 @@ namespace Project_Group3.Controllers
         public async Task<ActionResult<User>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
         {
             var user = await _userRepository.GetByCredentialsAsync(request.Username, request.Password, cancellationToken);
-            return user is null ? Unauthorized() : Ok(user);
+            if (user is null || user.isLocked || !user.isApproved)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(user);
         }
 
         [HttpGet("by-email")]
