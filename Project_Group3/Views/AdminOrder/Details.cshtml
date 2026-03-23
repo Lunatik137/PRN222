@@ -1,148 +1,173 @@
-﻿<h2 class="mb-4">Order Details</h2>
+﻿@model Project_Group3.Models.OrderTable
+@using Microsoft.AspNetCore.Http
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
+@{
+    ViewData["Title"] = "Order Details";
+    var username = Context.Session.GetString("Username") ?? "Admin";
+}
 
-        <div class="row">
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
 
-            <div class="col-md-6">
-                <p><b>Order ID:</b> #@Model.id</p>
-                <p><b>Buyer:</b> User @Model.buyerId</p>
+        <!-- SIDEBAR -->
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
+
+        <!-- CONTENT -->
+        <main class="dashboard-content">
+
+            <!-- HEADER -->
+            <header class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                <div>
+                    <h1 class="h3 mb-1">Order Details</h1>
+                    <p class="text-muted mb-0">
+                        Manage order information. Signed in as <strong>@username</strong>
+                    </p>
+                </div>
+            </header>
+
+            <!-- BACK -->
+            <div class="mb-3">
+                <a href="/AdminOrder" class="btn btn-outline-secondary btn-sm">
+                    ← Back to Orders
+                </a>
             </div>
 
-            <div class="col-md-6">
-                <p><b>Date:</b> @Model.orderDate?.ToString("dd/MM/yyyy")</p>
+            <!-- ORDER INFO -->
+            <section class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
 
-                <p>
-                    <b>Status:</b>
+                    <div class="row">
 
-                    @if (Model.status == "Paid")
-                    {
-                        <span class="badge bg-warning text-dark">Paid</span>
-                    }
-                    else if (Model.status == "Refunded")
-                    {
-                        <span class="badge bg-primary">Refunded</span>
-                    }
-                    @* else if (Model.status == "Delivered") *@
-                    @* { *@
-                    @*     <span class="badge bg-success">Delivered</span> *@
-                    @* } *@
-                    @* else if (Model.status == "Cancelled") *@
-                    @* { *@
-                    @*     <span class="badge bg-danger">Cancelled</span> *@
-                    @* } *@
-                    else
-                    {
-                        <span class="badge bg-secondary">@Model.status</span>
-                    }
+                        <div class="col-md-6">
+                            <p><b>Order ID:</b> #@Model.id</p>
+                            <p><b>Buyer:</b> @Model.buyer?.username</p>
+                        </div>
 
-                </p>
+                        <div class="col-md-6">
+                            <p><b>Date:</b> @Model.orderDate?.ToString("dd/MM/yyyy")</p>
 
-            </div>
+                            <p>
+                                <b>Status:</b>
 
-        </div>
+                                @{
+                                    var status = (Model.status ?? "").ToUpper();
+                                    var badge = status switch
+                                    {
+                                        "PAID" => "bg-primary",
+                                        "SHIPPING" => "bg-info",
+                                        "DELIVERED" => "bg-success",
+                                        "REFUNDED" => "bg-warning text-dark",
+                                        "CANCELLED" => "bg-danger",
+                                        "PENDING" => "bg-secondary",
+                                        _ => "bg-secondary"
+                                    };
+                                }
 
-    </div>
-</div>
+                                <span class="badge @badge">@status</span>
+                            </p>
+                        </div>
 
-
-<h3 class="mb-3">Products</h3>
-
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-
-        <table class="table table-hover align-middle">
-
-            <thead class="table-dark">
-                <tr>
-                    <th>Product Title</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-
-                @{
-                    decimal total = 0;
-                }
-
-                @foreach (var item in ViewBag.Items)
-                {
-                    var subtotal = item.quantity * item.unitPrice;
-                    total += subtotal;
-
-                    <tr>
-                        <td>@item.product?.title</td>
-                        <td>@item.quantity</td>
-                        <td>$@item.unitPrice</td>
-                        <td>$@subtotal</td>
-                    </tr>
-                }
-
-            </tbody>
-
-        </table>
-
-        <div class="text-end mt-3">
-            <h5>Total: <b>$@total</b></h5>
-        </div>
-    </div>
-</div>
-
-
-<h3 class="mb-3">Update Status</h3>
-
-<div class="card shadow-sm">
-    <div class="card-body">
-
-        <form method="post" asp-action="UpdateStatus">
-
-            <input type="hidden" name="id" value="@Model.id" />
-
-            <div class="row">
-
-                <div class="col-md-4">
-
-                    <select name="status" class="form-select">
-
-                        <option value="Paid" selected="@(Model.status == "Paid")">
-                            Paid
-                        </option>
-
-                        <option value="Refunded" selected="@(Model.status == "Refunded")">
-                            Refunded
-                        </option>
-
-                        @* <option value="Delivered" selected="@(Model.status == "Delivered")"> *@
-                        @*     Delivered *@
-                        @* </option> *@
-
-                        @* <option value="Cancelled" selected="@(Model.status == "Cancelled")"> *@
-                        @*     Cancelled *@
-                        @* </option> *@
-
-                    </select>
+                    </div>
 
                 </div>
+            </section>
 
-                <div class="col-md-2">
+            <!-- PRODUCTS -->
+            <section class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
 
-                    <button class="btn btn-primary">
-                        Update
-                    </button>
+                    <h5 class="mb-3">Products</h5>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @{
+                                    decimal total = 0;
+                                }
+
+                                @foreach (var item in ViewBag.Items)
+                                {
+                                    var subtotal = item.quantity * item.unitPrice;
+                                    total += subtotal;
+
+                                    <tr>
+                                        <td>
+                                            <b>@item.product?.title</b>
+                                        </td>
+
+                                        <td>@item.quantity</td>
+
+                                        <td>$@item.unitPrice.ToString("N0")</td>
+
+                                        <td>$@subtotal.ToString("N0")</td>
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+                    </div>
+
+                    <div class="text-end mt-3">
+                        <h5>Total: <b>$@total.ToString("N0")</b></h5>
+                    </div>
 
                 </div>
+            </section>
 
-            </div>
+            <!-- UPDATE STATUS -->
+            <section class="card border-0 shadow-sm">
+                <div class="card-body">
 
-        </form>
+                    <h5 class="mb-3">Update Status</h5>
 
+                    <form method="post" asp-action="UpdateStatus">
+
+                        <input type="hidden" name="id" value="@Model.id" />
+
+                        <div class="row">
+
+                            <div class="col-md-4">
+
+                                <select name="status" class="form-select">
+
+                                    <option value="PAID" selected="@(Model.status == "PAID")">Paid</option>
+                                    <option value="PENDING" selected="@(Model.status == "PENDING")">Pending</option>
+                                    <option value="SHIPPING" selected="@(Model.status == "SHIPPING")">Shipping</option>
+                                    <option value="DELIVERED" selected="@(Model.status == "DELIVERED")">Delivered</option>
+                                    <option value="REFUNDED" selected="@(Model.status == "REFUNDED")">Refunded</option>
+                                    <option value="CANCELLED" selected="@(Model.status == "CANCELLED")">Cancelled</option>
+
+                                </select>
+
+                            </div>
+
+                            <div class="col-md-2">
+
+                                <button class="btn btn-primary">
+                                    Update
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </form>
+
+                </div>
+            </section>
+
+        </main>
     </div>
-</div>
-<div class="mt-3">
-    <a href="/AdminOrder" class="btn btn-secondary">
-        ← Back to Orders
-    </a>
 </div>
