@@ -16,10 +16,10 @@ namespace Project_Group3.Controllers
 
         }
 
-        public IActionResult Index()
+        public IActionResult IndexDispute()
         {
             var data = _repo.GetAll();
-            return View(data);
+            return View("IndexDispute",data);
         }
 
         public IActionResult Details(int id)
