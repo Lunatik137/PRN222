@@ -6,7 +6,7 @@
 
 <div class="admin-page-wrapper">
     <div class="dashboard-shell">
-        <partial name="_AdminSidebar" />
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
 
         <main class="dashboard-content">
             <div class="container-fluid py-4">
@@ -50,10 +50,10 @@
 
                 <ul class="nav nav-tabs mt-4">
                     <li class="nav-item">
-                        <a class="nav-link @(currentTab == "reviews" ? "active" : "")" href="/Admin/ReviewsFeedback?tab=reviews">All Reviews</a>
+                        <a class="nav-link @(currentTab == "reviews" ? "active" : "")" href="/AdminReviewFeedback/ReviewsFeedback?tab=reviews">All Reviews</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link @(currentTab == "sellers" ? "active" : "")" href="/Admin/ReviewsFeedback?tab=sellers">Seller Feedbacks</a>
+                        <a class="nav-link @(currentTab == "sellers" ? "active" : "")" href="/AdminReviewFeedback/ReviewsFeedback?tab=sellers">Seller Feedbacks</a>
                     </li>
                 </ul>
 
@@ -98,7 +98,7 @@
                             </div>
                             <div class="col-md-3">
                                 <button type="submit" class="btn btn-primary">Filter</button>
-                                <a href="/Admin/ReviewsFeedback?tab=reviews" class="btn btn-secondary">Clear</a>
+                                <a href="/AdminReviewFeedback/ReviewsFeedback?tab=reviews" class="btn btn-secondary">Clear</a>
                             </div>
                         </form>
 
@@ -183,14 +183,14 @@
                                             <div class="d-flex gap-2">
                                                 @if (status == "Pending")
                                                 {
-                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post">
+                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
                                                         <input type="hidden" name="id" value="@review.id" />
                                                         <input type="hidden" name="newStatus" value="Approved" />
                                                         <button type="submit" class="btn btn-success px-4 fw-bold">
                                                             <i class="bi bi-check-circle me-1">✓</i> Approve
                                                         </button>
                                                     </form>
-                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Reject this review?')">
+                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Reject this review?')">
                                                         <input type="hidden" name="id" value="@review.id" />
                                                         <input type="hidden" name="newStatus" value="Rejected" />
                                                         <button type="submit" class="btn btn-danger px-4 fw-bold">
@@ -200,12 +200,12 @@
                                                 }
                                                 else if (status == "Approved" || status == "Show")
                                                 {
-                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post">
+                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
                                                         <input type="hidden" name="id" value="@review.id" />
                                                         <input type="hidden" name="newStatus" value="Hidden" />
                                                         <button type="submit" class="btn btn-secondary px-4 fw-bold">Hide</button>
                                                     </form>
-                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Permanently delete this review?')">
+                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Permanently delete this review?')">
                                                         <input type="hidden" name="id" value="@review.id" />
                                                         <input type="hidden" name="newStatus" value="Deleted" />
                                                         <button type="submit" class="btn btn-outline-danger px-4 fw-bold">Delete</button>
@@ -213,7 +213,7 @@
                                                 }
                                                 else if (status == "Hidden")
                                                 {
-                                                    <form asp-controller="Admin" asp-action="UpdateReviewStatus" method="post">
+                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
                                                         <input type="hidden" name="id" value="@review.id" />
                                                         <input type="hidden" name="newStatus" value="Show" />
                                                         <button type="submit" class="btn btn-info px-4 fw-bold text-white">Show</button>
@@ -289,18 +289,18 @@
                             </div>
                             <ul class="pagination mb-0">
                                 <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                                    <a class="page-link" href="/Admin/ReviewsFeedback?tab=@currentTab&page=@(currentPage - 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Previous</a>
+                                    <a class="page-link" href="/AdminReviewFeedback/ReviewsFeedback?tab=@currentTab&page=@(currentPage - 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Previous</a>
                                 </li>
                                 
                                 @for (int i = 1; i <= totalPages; i++)
                                 {
                                     <li class="page-item @(i == currentPage ? "active" : "")">
-                                        <a class="page-link" href="/Admin/ReviewsFeedback?tab=@currentTab&page=@i&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">@i</a>
+                                        <a class="page-link" href="/AdminReviewFeedback/ReviewsFeedback?tab=@currentTab&page=@i&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">@i</a>
                                     </li>
                                 }
 
                                 <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                                    <a class="page-link" href="/Admin/ReviewsFeedback?tab=@currentTab&page=@(currentPage + 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Next</a>
+                                    <a class="page-link" href="/AdminReviewFeedback/ReviewsFeedback?tab=@currentTab&page=@(currentPage + 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Next</a>
                                 </li>
                             </ul>
                         </nav>
