@@ -1,10 +1,14 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Project_Group3</title>
     <script type="importmap"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Project_Group3.styles.css" asp-append-version="true" />
@@ -27,11 +31,33 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+
+                    <ul class="navbar-nav">
+                        @if (Context.Session.GetString("Username") is { } username)
+                        {
+                            <li class="nav-item d-flex align-items-center me-2 text-success">Hello!, @username</li>
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Login">Login</a>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
+    @{
+        var isAdminPage = string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), "Admin", StringComparison.OrdinalIgnoreCase);
+        var contentContainerClass = isAdminPage ? "container-fluid px-3 px-lg-4" : "container";
+    }
+    <div class="@contentContainerClass">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>

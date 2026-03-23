@@ -8,10 +8,14 @@ namespace Project_Group3
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // Add services to the container.   
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllersWithViews();
+
             builder.Services.AddSignalR();
+
+            builder.Services.AddSession();
+
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Project_Group3 API", Version = "v1" });
@@ -39,6 +43,7 @@ namespace Project_Group3
 
             app.UseHttpsRedirection();
             app.UseRouting();
+            app.UseSession();
 
             app.UseAuthorization();
 
