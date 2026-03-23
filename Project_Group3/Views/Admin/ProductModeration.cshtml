@@ -1,0 +1,204 @@
+﻿@model Project_Group3.Models.ProductModerationViewModel
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Product Moderation";
+    var username = Context.Session.GetString("Username") ?? "SuperAdmin";
+}
+
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="_AdminSidebar" />
+
+        <main class="dashboard-content">
+            <header class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                <div>
+                    <h1 class="h3 mb-1">Product Moderation</h1>
+                    <p class="text-muted mb-0">Review and enforce product policy compliance. Signed in as <strong>@username</strong>.</p>
+                </div>
+            </header>
+
+            @if (TempData["ActionSuccess"] is string successMessage)
+            {
+                <div class="alert alert-success">@successMessage</div>
+            }
+
+            @if (TempData["ActionError"] is string errorMessage)
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+
+            <section class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <form method="get" asp-action="ProductModeration" class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="active" selected="@(Model.Status == "active")">Active</option>
+                                <option value="reported" selected="@(Model.Status == "reported")">Reported</option>
+                                <option value="hidden" selected="@(Model.Status == "hidden")">Hidden</option>
+                                <option value="deleted" selected="@(Model.Status == "deleted")">Deleted</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Keyword</label>
+                            <input name="keyword" value="@Model.Keyword" class="form-control" placeholder="Search by title, description, seller" />
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button type="submit" class="btn btn-primary">Filter products</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h5 mb-0">Products (@Model.Total)</h2>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Product</th>
+                                    <th>Seller</th>
+                                    <th>Status</th>
+                                    <th>Reports</th>
+                                    <th>Description</th>
+                                    <th>Image URL</th>
+                                    <th style="min-width: 260px;">Moderation Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Products.Any())
+                                {
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">No products found for this filter.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var item in Model.Products)
+                                    {
+                                        var product = item.Product;
+                                        var normalizedStatus = (product.status ?? "unknown").Trim().ToLowerInvariant();
+                                        var rowClass = normalizedStatus == "reported" ? "table-danger" : string.Empty;
+                                        var statusBadgeClass = normalizedStatus switch
+                                        {
+                                            "active" => "bg-success",
+                                            "reported" => "bg-danger",
+                                            "hidden" => "bg-secondary",
+                                            "deleted" => "bg-dark",
+                                            _ => "bg-secondary"
+                                        };
+                                        var suggestedAction = item.ReportCount < 3 ? "Hide" : "Delete";
+                                        <tr class="@rowClass">
+                                            <td>@product.id</td>
+                                            <td>
+                                                <div class="fw-semibold">@product.title</div>
+                                                <small class="text-muted">@((product.price ?? 0m).ToString("C"))</small>
+                                            </td>
+                                            <td>
+                                                <div>@(product.seller?.username ?? "N/A")</div>
+                                                <small class="text-muted">@(product.seller?.email ?? "")</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge @statusBadgeClass">@(product.status ?? "unknown")</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-danger">@item.ReportCount</span>
+                                            </td>
+                                            <td style="max-width: 270px; white-space: normal;">
+                                                @product.description
+                                            </td>
+                                            <td style="max-width: 250px; white-space: normal; word-break: break-word;">
+                                                @product.images
+                                            </td>
+                                            <td>
+                                                <form asp-action="ReportProduct" method="post" class="mb-2" onsubmit="return confirm('Mark product #@product.id as reported?')">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="ProductId" value="@product.id" />
+                                                    <input type="hidden" name="Status" value="@Model.Status" />
+                                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                    <div class="input-group input-group-sm mb-1">
+                                                        <input type="text" name="Reason" class="form-control" placeholder="Report reason" required />
+                                                    </div>
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">Report product</button>
+                                                </form>
+
+                                                <form asp-action="HideProduct" method="post" class="mb-2" onsubmit="return confirm('Hide product #@product.id?')">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="ProductId" value="@product.id" />
+                                                    <input type="hidden" name="Status" value="@Model.Status" />
+                                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                    <div class="input-group input-group-sm mb-1">
+                                                        <input type="text" name="Reason" class="form-control" placeholder="Hide reason" required />
+                                                    </div>
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" value="true" name="LockSeller" id="lockHide_@product.id" />
+                                                        <label class="form-check-label" for="lockHide_@product.id">Lock seller account</label>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-warning btn-sm w-100">Hide product</button>
+                                                </form>
+
+                                                <form asp-action="DeleteProduct" method="post" class="mb-2" onsubmit="return confirm('Delete product #@product.id? This action is severe.')">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="ProductId" value="@product.id" />
+                                                    <input type="hidden" name="Status" value="@Model.Status" />
+                                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                    <div class="input-group input-group-sm mb-1">
+                                                        <input type="text" name="Reason" class="form-control" placeholder="Delete reason" required />
+                                                    </div>
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" value="true" name="LockSeller" id="lockDelete_@product.id" />
+                                                        <label class="form-check-label" for="lockDelete_@product.id">Lock seller account</label>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-danger btn-sm w-100">Delete product</button>
+                                                </form>
+
+                                                <form asp-action="AutoModerateProduct" method="post" onsubmit="return confirm('Apply auto moderation rule for product #@product.id?')">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="ProductId" value="@product.id" />
+                                                    <input type="hidden" name="Status" value="@Model.Status" />
+                                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                    <input type="hidden" name="Reason" value="Auto moderation by report threshold rule" />
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                                        Auto rule (@suggestedAction)
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h2 class="h5">Moderation History</h2>
+                    @if (!Model.ActionLogs.Any())
+                    {
+                        <p class="text-muted mb-0">No moderation history in this session.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var log in Model.ActionLogs)
+                            {
+                                <li class="list-group-item px-0">
+                                    <strong>@log.Action</strong> — @log.Target
+                                    <div class="small text-muted">@log.AtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") by @log.Username</div>
+                                    <div class="small">@log.Details</div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
