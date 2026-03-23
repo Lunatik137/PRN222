@@ -1,0 +1,92 @@
+﻿@model List<AdminStoreListItemVm>
+
+@{
+   var currentFilter = (string?)ViewBag.Filter ?? "all";
+}
+
+<h2 class="mb-3">Store Performance Dashboard</h2>
+
+<form asp-action="StoresDashboard" method="get" class="row g-2 mb-3">
+   <div class="col-auto">
+       <label class="col-form-label">Lọc store:</label>
+   </div>
+   <div class="col-auto">
+       <select name="filter" class="form-select form-select-sm" onchange="this.form.submit()">
+           <option value="all" selected="@(currentFilter == "all")">Tất cả</option>
+           <option value="upgrade" selected="@(currentFilter == "upgrade")">Có thể Upgrade</option>
+           <option value="downgrade" selected="@(currentFilter == "downgrade")">Có thể Downgrade</option>
+       </select>
+   </div>
+</form>
+
+<table class="table table-bordered align-middle">
+   <thead class="table-light">
+       <tr>
+           <th>Store</th>
+           <th>Level</th>
+           <th>Total Orders</th>
+           <th>Total Sales</th>
+           <th>Return Rate</th>
+           <th>Dispute Rate</th>
+           <th>Defect Rate</th>
+           <th style="width: 220px;">Action</th>
+       </tr>
+   </thead>
+   <tbody>
+       @if (!Model.Any())
+       {
+           <tr>
+               <td colspan="8" class="text-center text-muted">
+                   Không có store nào phù hợp với bộ lọc hiện tại.
+               </td>
+           </tr>
+       }
+       else
+       {
+           @foreach (var s in Model)
+           {
+               <tr>
+                   <td>@s.StoreName</td>
+                   <td>
+                       <span class="badge bg-secondary">@s.CurrentLevel</span>
+                   </td>
+                   <td>@s.TotalOrders</td>
+                   <td>@s.TotalSales.ToString("C0")</td>
+                   <td>@s.ReturnRate.ToString("P1")</td>
+                   <td>@s.DisputeRate.ToString("P1")</td>
+                   <td>@s.DefectRate.ToString("P1")</td>
+                   <td>
+                       @if (s.CanUpgrade)
+                       {
+                           <form asp-action="ChangeLevel" method="post" class="d-inline"
+                                 onsubmit="return confirm(@($"Bạn có chắc chắn muốn UPGRADE store \"{s.StoreName}\" lên level {s.TargetLevel} không?"));">
+                               @Html.AntiForgeryToken()
+                               <input type="hidden" name="storeId" value="@s.StoreId" />
+                               <input type="hidden" name="targetLevel" value="@((int)s.TargetLevel)" />
+                               <button type="submit" class="btn btn-sm btn-success">
+                                   Upgrade to @s.TargetLevel
+                               </button>
+                           </form>
+                       }
+                       else if (s.CanDowngrade)
+                       {
+                           <form asp-action="ChangeLevel" method="post" class="d-inline"
+                                 onsubmit="return confirm(@($"Store \"{s.StoreName}\" không còn đạt chuẩn. Bạn có chắc chắn muốn DOWNGRADE xuống level {s.TargetLevel} không?"));">
+                               @Html.AntiForgeryToken()
+                               <input type="hidden" name="storeId" value="@s.StoreId" />
+                               <input type="hidden" name="targetLevel" value="@((int)s.TargetLevel)" />
+                               <button type="submit" class="btn btn-sm btn-warning">
+                                   Downgrade to @s.TargetLevel
+                               </button>
+                           </form>
+                       }
+                       else
+                       {
+                           <span class="text-muted">Đạt chuẩn level hiện tại</span>
+                       }
+                   </td>
+               </tr>
+           }
+       }
+   </tbody>
+</table>

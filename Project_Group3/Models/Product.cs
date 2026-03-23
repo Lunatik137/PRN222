@@ -1,31 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class Product
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public string? title { get; set; }
+    public string? Title { get; set; }
 
-    public string? description { get; set; }
+    public string? Description { get; set; }
 
-    public decimal? price { get; set; }
+    public decimal Price { get; set; }
 
-    public string? images { get; set; }
+    public string? Images { get; set; }
 
-    public int? categoryId { get; set; }
+    public int? CategoryId { get; set; }
 
-    public int? sellerId { get; set; }
+    public int? SellerId { get; set; }
 
-    public bool? isAuction { get; set; }
+    public bool? IsAuction { get; set; }
 
-    public DateTime? auctionEndTime { get; set; }
+    public DateTime? AuctionEndTime { get; set; }
 
-    public string? status { get; set; }
+    public string? Status { get; set; }
 
     public virtual ICollection<Bid> Bids { get; set; } = new List<Bid>();
+
+    public virtual Category? Category { get; set; }
 
     public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();
 
@@ -35,7 +37,5 @@ public partial class Product
 
     public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 
-    public virtual Category? category { get; set; }
-
-    public virtual User? seller { get; set; }
+    public virtual User? Seller { get; set; }
 }

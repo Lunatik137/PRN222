@@ -1,0 +1,132 @@
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Register Account</h3>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Message"] != null)
+                    {
+                        <div class="alert @(TempData["MessageType"]?.ToString() == "error" ? "alert-danger" : "alert-success") alert-dismissible fade show">
+                            @TempData["Message"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form method="post" action="@Url.Action("Register", "Login")" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username" required
+                                   minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+"
+                                   placeholder="Enter username (letters, numbers, underscore)">
+                            <div class="invalid-feedback">
+                                Username must be 3-50 characters long and can only contain letters, numbers, and underscore.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                   maxlength="100" placeholder="Enter your email">
+                            <div class="invalid-feedback">
+                                Please enter a valid email address.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Account Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">-- Select Role --</option>
+                                <option value="Customer">Customer</option>
+                                <option value="Seller">Seller</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select your account type.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                   minlength="1" maxlength="100" placeholder="Enter password">
+                            <div class="invalid-feedback">
+                                Please enter a password.
+                            </div>
+                        </div>
+
+                        @* <div class="mb-3"> *@
+                        @*     <label for="fullName" class="form-label">Full Name</label> *@
+                        @*     <input type="text" class="form-control" id="fullName" name="fullName" *@
+                        @*            maxlength="100" placeholder="Enter your full name"> *@
+                        @* </div> *@
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">
+                                Phone Number 
+                                @if (TempData["RequirePhone"] != null && (bool)TempData["RequirePhone"])
+                                {
+                                    <span class="text-danger">* (Required for verification)</span>
+                                }
+                            </label>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                   @(TempData["RequirePhone"] != null && (bool)TempData["RequirePhone"] ? "required" : "")
+                                   pattern="[0-9]{10,11}" placeholder="Enter phone number (10-11 digits)">
+                            <div class="invalid-feedback">
+                                Please enter a valid phone number (10-11 digits).
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Register</button>
+                            <a href="@Url.Action("Login", "Login")" class="btn btn-outline-secondary">
+                                Already have an account? Login
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Client-side validation
+        (function () {
+            'use strict'
+
+            // Fetch all forms that need validation
+            var forms = document.querySelectorAll('.needs-validation')
+
+            // Add validation on submit
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+
+                    // Check if passwords match
+                    var password = document.getElementById('password')
+                    var confirm = document.getElementById('confirmPassword')
+                    if (password.value !== confirm.value) {
+                        confirm.setCustomValidity('Passwords do not match')
+                        event.preventDefault()
+                        event.stopPropagation()
+                    } else {
+                        confirm.setCustomValidity('')
+                    }
+
+                    form.classList.add('was-validated')
+                }, false)
+            })
+
+            // Basic form validation only
+        })()
+    </script>
+}

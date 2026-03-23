@@ -1,0 +1,141 @@
+﻿@model List<PRN222_Group3.Models.OrderTable>
+
+@{
+    ViewData["Title"] = "My order";
+    var returnRequests = ViewData["ReturnRequests"] as List<PRN222_Group3.Models.ReturnRequest>;
+
+}
+
+<div class="container mt-4">
+    <h3 class="mb-4">My order</h3>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Bạn chưa mua đơn hàng nào.</div>
+    }
+    else
+    {
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Code number</th>
+                    <th>Time order</th>
+                    <th>Product</th>
+                    <th>Total money</th>
+                    <th>Status</th>
+                    <th>Request cancel</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    var returnRequest = returnRequests?.FirstOrDefault(r => r.OrderId == order.Id);
+                    var files = returnRequests?.FirstOrDefault(r => r.OrderId == order.Id)?.Images?.Split(';') ?? new string[0];
+                    <tr>
+                        <td>@order.Id</td>
+                        <td>@order.OrderDate.ToString("dd/MM/yyyy")</td>
+
+                        <td>
+                            @foreach (var item in order.OrderItems)
+                            {
+                                <div>
+                                    <strong>@item.Product?.Title</strong>
+                                    <span class="text-muted">(x @item.Quantity)</span>
+                                    <br />
+                                </div>
+                            }
+                        </td>
+
+                        <td>@order.TotalPrice.ToString("N0") VND</td>
+
+                        <td>
+                            <span>@order.Status</span>
+                        </td>
+                        <td>
+                            @if (order.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) || order.Status.Equals("ReturnRequested", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal-@order.Id">
+                                    Yêu cầu hủy
+                                </button>
+
+                                <div class="modal fade" id="cancelModal-@order.Id" tabindex="-1" aria-labelledby="cancelModalLabel-@order.Id" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form method="post" enctype="multipart/form-data" asp-action="RequestCancel" asp-controller="Customer">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="cancelModalLabel-@order.Id">Yêu cầu hủy đơn hàng #@order.Id</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="OrderId" value="@order.Id" />
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Trạng thái yêu cầu</label>
+                                                        <input type="text" class="form-control" value="@(returnRequest?.Status ?? "Chưa gửi")" readonly />
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label for="Reason-@order.Id" class="form-label">Lý do hủy</label>
+                                                        <textarea class="form-control" name="Reason" rows="3">
+                                                            @returnRequests?.FirstOrDefault(r => r.OrderId == order.Id)?.Reason
+                        </textarea>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label">File đã upload</label>
+                                                        <div class="d-flex flex-wrap">
+                                                            @foreach (var file in files)
+                                                            {
+                                                                <div class="m-1" style="max-width:150px;">
+                                                                    <img src="@Url.Content("~/uploads/" + file)" class="img-fluid img-thumbnail" alt="@file" />
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label for="Files-@order.Id" class="form-label">Upload thêm file</label>
+                                                        <input type="file" class="form-control" id="Files-@order.Id" name="Files" multiple />
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                                    <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+@if ((int)ViewData["TotalPages"] > 1)
+{
+    <nav>
+        <ul class="pagination">
+            @{
+                int currentPage = (int)ViewData["CurrentPage"];
+                int totalPages = (int)ViewData["TotalPages"];
+            }
+
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", new { page = currentPage - 1 })">Trước</a>
+            </li>
+
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+                </li>
+            }
+
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", new { page = currentPage + 1 })">Sau</a>
+            </li>
+        </ul>
+    </nav>
+}

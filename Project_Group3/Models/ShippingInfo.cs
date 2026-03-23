@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class ShippingInfo
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public int? orderId { get; set; }
+    public int? OrderId { get; set; }
 
-    public string? carrier { get; set; }
+    public string? Carrier { get; set; }
 
-    public string? trackingNumber { get; set; }
+    public string? TrackingNumber { get; set; }
 
-    public string? status { get; set; }
+    public string? Status { get; set; }
 
-    public DateTime? estimatedArrival { get; set; }
+    public DateTime? EstimatedArrival { get; set; }
 
-    public virtual OrderTable? order { get; set; }
+    public virtual OrderTable? Order { get; set; }
 }

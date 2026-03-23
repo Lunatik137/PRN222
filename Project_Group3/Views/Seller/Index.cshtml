@@ -1,0 +1,176 @@
+@model List<PRN222_Group3.Models.OrderTable>
+
+@{
+    ViewData["Title"] = "Đơn hàng của tôi (Seller)";
+    var returnRequests = ViewData["ReturnRequests"] as List<PRN222_Group3.Models.ReturnRequest>;
+}
+
+<div class="container mt-4">
+    <h3 class="mb-4">Danh sách đơn hàng của tôi</h3>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Bạn chưa có đơn hàng nào.</div>
+    }
+    else
+    {
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Đơn hàng</th>
+                    <th>Ngày đặt</th>
+                    <th>Sản phẩm</th>
+                    <th>Tổng tiền</th>
+                    <th>Trạng thái đơn</th>
+                    <th>Chi tiết yêu cầu</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    var rr = returnRequests?.FirstOrDefault(r => r.OrderId == order.Id);
+                    <tr>
+                        <td>@order.Id</td>
+                        <td>@order.OrderDate.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @foreach (var item in order.OrderItems)
+                            {
+                                <div>@item.Product?.Title (x @item.Quantity)</div>
+                            }
+                        </td>
+                        <td>@order.TotalPrice.ToString("N0") VND</td>
+                        <td>@order.Status</td>
+                        <td>
+                            @if (rr != null)
+                            {
+                                if (rr.Status == "Pending")
+                                {
+                                    <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#returnModal-@order.Id">
+                                        Xem yêu cầu
+                                    </button>
+
+                                    <!-- Modal: xem yêu cầu hoàn trả (seller không duyệt — admin xử lý tại ReturnRequestAdmin) -->
+                                    <div class="modal fade" id="returnModal-@order.Id" tabindex="-1" aria-labelledby="returnModalLabel-@order.Id" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                @*
+                                                CODE CŨ — form post HandleReturn (chấp nhận / mở modal từ chối hủy):
+                                                <form method="post" asp-action="HandleReturn" asp-controller="Seller">
+                                                    <div class="modal-header">...</div>
+                                                    <div class="modal-body">
+                                                        <input type="hidden" name="returnRequestId" value="@rr.Id" />
+                                                        ...
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="submit" name="actionType" value="accept" class="btn btn-success">Chấp nhận</button>
+                                                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal-@order.Id">Từ chối</button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                                    </div>
+                                                </form>
+                                                *@
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="returnModalLabel-@order.Id">Yêu cầu hoàn trả — Đơn #@order.Id</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="alert alert-info small mb-3">
+                                                        Yêu cầu hoàn trả do <strong>quản trị viên</strong> xét duyệt (menu Admin: Hoàn trả đơn hàng). Seller chỉ xem thông tin; vẫn có thể gửi <strong>khiếu nại (Dispute)</strong> nếu cần.
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Lý do</label>
+                                                        <textarea class="form-control" readonly>@rr.Reason</textarea>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Ảnh đính kèm</label>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            @foreach (var file in (rr.Images?.Split(';') ?? new string[0]))
+                                                            {
+                                                                <img src="@Url.Content("~/uploads/" + file)" alt="@file" class="img-thumbnail" style="max-width:150px; max-height:150px;" />
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal-@order.Id">
+                                                        Gửi khiếu nại (Dispute)
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Modal Từ Chối Hủy -->
+                                    <div class="modal fade" id="rejectModal-@order.Id" tabindex="-1" aria-labelledby="rejectLabel-@order.Id" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form method="post" asp-action="RejectCancel" asp-controller="Seller" enctype="multipart/form-data">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="rejectLabel-@order.Id">Từ chối yêu cầu hủy – Đơn #@order.Id</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                                                    </div>
+
+                                                    <div class="modal-body">
+                                                        <input type="hidden" name="OrderId" value="@order.Id" />
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Lý do từ chối hủy</label>
+                                                            <textarea name="Description" class="form-control" placeholder="Nhập lý do bạn từ chối hủy..." required></textarea>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Upload ảnh chứng minh (tùy chọn)</label>
+                                                            <input type="file" name="EvidenceFiles" class="form-control" multiple accept="image/*" />
+                                                            <div class="form-text">Bạn có thể chọn nhiều ảnh.</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="modal-footer">
+                                                        <button type="submit" class="btn btn-danger">Gửi yêu cầu từ chối</button>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                }
+                                else
+                                {
+                                    <span>@rr.Status</span>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @* Phân trang nếu cần *@
+        @if ((int)ViewData["TotalPages"] > 1)
+        {
+            <nav>
+                <ul class="pagination">
+                    @{
+                        int currentPage = (int)ViewData["CurrentPage"];
+                        int totalPages = (int)ViewData["TotalPages"];
+                    }
+
+                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("SellerOrders", new { page = currentPage - 1 })">Trước</a>
+                    </li>
+
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == currentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("SellerOrders", new { page = i })">@i</a>
+                        </li>
+                    }
+
+                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("SellerOrders", new { page = currentPage + 1 })">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</div>

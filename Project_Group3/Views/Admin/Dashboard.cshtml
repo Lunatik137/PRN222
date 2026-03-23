@@ -1,0 +1,173 @@
+﻿@model PRN222_Group3.Views.ViewModel.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_Layout";
+}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Dashboard Tổng Quan</h1>
+
+    <!-- Statistics Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Tổng Người Dùng
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Tổng Sản Phẩm
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalProducts</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Tổng Đơn Hàng
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalOrders</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Doanh Thu (VND)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@FormatCurrency(Model.TotalRevenue)</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Products -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Sản Phẩm Mới Nhất</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Tên SP</th>
+                                    <th>Danh Mục</th>
+                                    <th>Giá</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.RecentProducts)
+                                {
+                                    <tr>
+                                        <td>@product.Title</td>
+                                        <td>@product.Category?.Name</td>
+                                        <td>@FormatCurrency(product.Price)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Đơn Hàng Mới Nhất</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Mã ĐH</th>
+                                    <th>Người Mua</th>
+                                    <th>Ngày Đặt</th>
+                                    <th>Tổng Tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in Model.RecentOrders)
+                                {
+                                    <tr>
+                                        <td>#@order.Id</td>
+                                        <td>@order.Buyer?.Username</td>
+                                        <td>@order.OrderDate.ToString("dd/MM/yyyy")</td>
+                                        <td>@FormatCurrency(order.TotalPrice) : 0</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public string FormatCurrency(decimal value)
+    {
+        return value.ToString("N0") + " VND";
+    }
+}
+
+@section Scripts {
+    <script>
+        // Auto refresh stats every 30 seconds
+        setInterval(function() {
+            $.get('@Url.Action("GetDashboardStats", "Admin")', function(data) {
+                $('.card-body .h5').eq(0).text(data.totalUsers);
+                $('.card-body .h5').eq(1).text(data.totalProducts);
+                $('.card-body .h5').eq(2).text(data.totalOrders);
+                $('.card-body .h5').eq(3).text(data.totalRevenue.toLocaleString() + ' VND');
+            });
+        }, 30000);
+    </script>
+}

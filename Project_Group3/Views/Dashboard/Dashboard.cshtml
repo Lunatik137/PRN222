@@ -1,0 +1,376 @@
+@using PRN222_Group3.Models
+@{
+    ViewData["Title"] = "Statistics Dashboard";
+    var statistics = ViewBag.Statistics as DashboardStatistics;
+    string startDate = ViewBag.StartDate ?? DateTime.UtcNow.ToString("yyyy-MM-dd");
+    string endDate = ViewBag.EndDate ?? DateTime.UtcNow.ToString("yyyy-MM-dd");
+    string groupBy = ViewBag.GroupBy as string ?? "month";
+}
+
+ 
+
+<div class="container mt-4 mb-5">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center mb-3">
+        <div class="dash-header">
+            <div class="title-icon"><i class="bi bi-speedometer2"></i></div>
+            <div>
+                <h2 class="mb-0">Statistics Dashboard</h2>
+                <div class="text-muted">Monitor system performance over time</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters row -->
+    <div class="mb-4">
+        <form id="filterForm" asp-controller="Dashboard" asp-action="Dashboard" method="get" class="d-flex align-items-center gap-3 w-100">
+            <div class="d-flex align-items-center gap-2">
+                <label class="me-1">From:</label>
+                <input id="startDate" type="date" name="startDate" class="form-control" style="max-width: 170px;" value="@startDate" />
+                <label class="ms-2 me-1">To:</label>
+                <input id="endDate" type="date" name="endDate" class="form-control" style="max-width: 170px;" value="@endDate" />
+                <select name="groupBy" class="form-select ms-2" style="max-width: 150px;">
+                    <option value="day" selected="@(groupBy == "day" ? "selected" : "")">By day</option>
+                    <option value="month" selected="@(groupBy == "month" ? "selected" : "")">By month</option>
+                    <option value="quarter" selected="@(groupBy == "quarter" ? "selected" : "")">By quarter</option>
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+            </div>
+            <div class="ms-auto d-flex">
+                @if (User.IsInRole("Ops") || User.IsInRole("SuperAdmin"))
+                {
+                    <a asp-controller="Dashboard" asp-action="ExportToExcel"
+                       asp-route-startDate="@startDate"
+                       asp-route-endDate="@endDate"
+                       asp-route-groupBy="@groupBy"
+                       class="btn btn-success">
+                        <i class="bi bi-file-earmark-excel"></i> Export Excel
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <!-- Overview stats -->
+    <div class="row text-center mb-4 g-3">
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-icon bg-grad-success"><i class="bi bi-currency-exchange"></i></div>
+                    <div class="text-start">
+                        <div class="text-muted">Total Revenue</div>
+                        <div class="h5 fw-bold text-success mb-0">@string.Format("{0:N0}", statistics?.Revenue ?? 0) ₫</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-icon bg-grad-primary"><i class="bi bi-bag-check"></i></div>
+                    <div class="text-start">
+                        <div class="text-muted">Total Orders</div>
+                        <div class="h5 fw-bold mb-0">@statistics?.Orders</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-icon bg-grad-info"><i class="bi bi-people"></i></div>
+                    <div class="text-start">
+                        <div class="text-muted">Total Users</div>
+                        <div class="h5 fw-bold text-primary mb-0">@statistics?.TotalUsers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-icon bg-grad-warning"><i class="bi bi-person-plus"></i></div>
+                    <div class="text-start">
+                        <div class="text-muted">New Users</div>
+                        <div class="h5 fw-bold text-info mb-0">@statistics?.NewUsers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts + Table -->
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card chart-card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">📈 Revenue by @((groupBy == "day" ? "day" : groupBy == "quarter" ? "quarter" : "month"))</h5>
+                    <canvas id="revenueChart" height="120"></canvas>
+                </div>
+            </div>
+            <div class="card chart-card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">📦 Orders by @((groupBy == "day" ? "day" : groupBy == "quarter" ? "quarter" : "month"))</h5>
+                    <canvas id="ordersChart" height="120"></canvas>
+                </div>
+            </div>
+            <div class="card chart-card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">👤 New users by @((groupBy == "day" ? "day" : groupBy == "quarter" ? "quarter" : "month"))</h5>
+                    <canvas id="newUsersChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card table-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Revenue details</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40%">Period</th>
+                                    <th>Revenue (₫)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (statistics?.RevenueData != null && statistics.RevenueData.Any())
+                                {
+                                    foreach (var item in statistics.RevenueData)
+                                    {
+                                        string label;
+                                        if (item.Day.HasValue && groupBy == "day")
+                                        {
+                                            label = $"{item.Day.Value:D2}/{item.Month:D2}/{item.Year}";
+                                        }
+                                        else if (item.Quarter.HasValue && groupBy == "quarter")
+                                        {
+                                            label = $"Q{item.Quarter.Value}/{item.Year}";
+                                        }
+                                        else
+                                        {
+                                            label = $"{item.Month:D2}/{item.Year}";
+                                        }
+                                        <tr>
+                                            <td>@label</td>
+                                            <td class="fw-semibold text-end">@string.Format("{0:N0}", item.Value) ₫</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="2" class="text-center">
+                                            <div class="empty-state">
+                                                <i class="bi bi-clipboard-x fs-3 d-block mb-2"></i>
+                                                <div>No revenue data.</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-3">
+        <div class="col-lg-4">
+            <div class="card table-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Top sellers (by revenue)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Seller</th>
+                                    <th class="text-end">Orders</th>
+                                    <th class="text-end">Items</th>
+                                    <th class="text-end">Revenue (₫)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (statistics?.TopSellers != null && statistics.TopSellers.Any())
+                                {
+                                    foreach (var s in statistics.TopSellers)
+                                    {
+                                        <tr>
+                                            <td>@s.SellerName</td>
+                                            <td class="text-end">@s.TotalOrders</td>
+                                            <td class="text-end">@s.TotalItems</td>
+                                            <td class="text-end">@string.Format("{0:N0}", s.TotalRevenue) ₫</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No seller data.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card table-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Top products (by quantity)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-end">Qty</th>
+                                    <th class="text-end">Revenue (₫)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (statistics?.TopProducts != null && statistics.TopProducts.Any())
+                                {
+                                    foreach (var p in statistics.TopProducts)
+                                    {
+                                        <tr>
+                                            <td>@p.ProductName</td>
+                                            <td class="text-end">@p.TotalQuantity</td>
+                                            <td class="text-end">@string.Format("{0:N0}", p.TotalRevenue) ₫</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">No product data.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card table-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Top buyers (by spending)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Buyer</th>
+                                    <th class="text-end">Orders</th>
+                                    <th class="text-end">Total spent (₫)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (statistics?.TopBuyers != null && statistics.TopBuyers.Any())
+                                {
+                                    foreach (var b in statistics.TopBuyers)
+                                    {
+                                        <tr>
+                                            <td>@b.BuyerName</td>
+                                            <td class="text-end">@b.TotalOrders</td>
+                                            <td class="text-end">@string.Format("{0:N0}", b.TotalSpent) ₫</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">No buyer data.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const groupBy = '@groupBy';
+        const revenueData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(statistics?.RevenueData ?? new List<TimeSeriesPoint>()));
+        const ordersData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(statistics?.OrdersData ?? new List<TimeSeriesPoint>()));
+        const newUsersData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(statistics?.NewUsersData ?? new List<TimeSeriesPoint>()));
+
+        function buildLabel(point) {
+            // TimeSeriesPoint is serialized with PascalCase properties: Year, Month, Day, Quarter, Value
+            const year = point.Year;
+            const month = point.Month;
+            const day = point.Day;
+            const quarter = point.Quarter;
+
+            if (groupBy === 'day' && day && month && year) {
+                return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+            }
+            if (groupBy === 'quarter' && quarter && year) {
+                return `Q${quarter}/${year}`;
+            }
+            if (month && year) {
+                return `${month.toString().padStart(2, '0')}/${year}`;
+            }
+            return year?.toString() ?? '';
+        }
+
+        function renderChart(canvasId, dataSource, label, isMoney) {
+            console.log('renderChart called', canvasId, dataSource);
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            if (!dataSource || dataSource.length === 0) {
+                canvas.parentElement.innerHTML = `<p class='text-center text-muted'>Không có dữ liệu trong khoảng thời gian này.</p>`;
+                return;
+            }
+
+            const labels = dataSource.map(x => buildLabel(x));
+            const data = dataSource.map(x => x.Value);
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        borderWidth: 2,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgb(75, 192, 192)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => isMoney
+                                    ? value.toLocaleString('vi-VN') + ' ₫'
+                                    : value.toLocaleString('vi-VN')
+                            }
+                        }
+                    }
+                }
+            });
+        }
+console.log('groupBy', groupBy);
+console.log('revenueData', revenueData);
+console.log('ordersData', ordersData);
+console.log('newUsersData', newUsersData);
+        renderChart('revenueChart', revenueData, 'Doanh thu (₫)', true);
+        renderChart('ordersChart', ordersData, 'Số đơn hàng', false);
+        renderChart('newUsersChart', newUsersData, 'Người dùng mới', false);
+    </script>
+}

@@ -1,41 +1,47 @@
 ﻿using System;
-using System.Collections.Generic;
 
-namespace Project_Group3.Models;
-
-public partial class RiskAssessment
+namespace PRN222_Group3.Models
 {
-    public int Id { get; set; }
+    /// <summary>
+    /// Risk Assessment entity - stores risk scoring history
+    /// </summary>
+    public partial class RiskAssessment
+    {
+        public int Id { get; set; }
 
-    public int UserId { get; set; }
+        public int UserId { get; set; }
 
-    public int RiskScore { get; set; }
+        public int RiskScore { get; set; }
 
-    public string RiskLevel { get; set; } = null!;
+        public string RiskLevel { get; set; } = "Low";
 
-    public string RecommendedAction { get; set; } = null!;
+        public string RecommendedAction { get; set; } = "Allow";
 
-    public string? Reason { get; set; }
+        public string? Reason { get; set; }
 
-    public bool IpMatchWithExistingAccount { get; set; }
+        // Risk Factors
+        public bool IpMatchWithExistingAccount { get; set; }
 
-    public bool NewAccount { get; set; }
+        public bool NewAccount { get; set; }
 
-    public bool SameEmailDomain { get; set; }
+        public bool SameEmailDomain { get; set; }
 
-    public bool OutsideBusinessHours { get; set; }
+        public bool OutsideBusinessHours { get; set; }
 
-    public bool DisposableEmail { get; set; }
+        public bool DisposableEmail { get; set; }
 
-    public bool RapidRegistrations { get; set; }
+        public bool RapidRegistrations { get; set; }
 
-    public int ExistingAccountsWithSameIp { get; set; }
+        // Additional details
+        public int ExistingAccountsWithSameIp { get; set; }
 
-    public int DaysSinceRegistration { get; set; }
+        public int DaysSinceRegistration { get; set; }
 
-    public string? AssessmentIpAddress { get; set; }
+        public string? AssessmentIpAddress { get; set; }
 
-    public DateTime AssessmentDate { get; set; }
+        public DateTime AssessmentDate { get; set; }
 
-    public virtual User User { get; set; } = null!;
+        // Navigation property
+        public virtual User? User { get; set; }
+    }
 }

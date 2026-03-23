@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class Dispute
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public int? orderId { get; set; }
+    public int? OrderId { get; set; }
 
-    public int? raisedBy { get; set; }
+    public int? RaisedBy { get; set; }
 
-    public string? description { get; set; }
+    public string? Description { get; set; }
 
-    public string? status { get; set; }
+    public string? Status { get; set; }
 
-    public string? resolution { get; set; }
+    public string? Resolution { get; set; }
 
-    public virtual OrderTable? order { get; set; }
+    public virtual OrderTable? Order { get; set; }
 
-    public virtual User? raisedByNavigation { get; set; }
+    public virtual User? RaisedByNavigation { get; set; }
 }

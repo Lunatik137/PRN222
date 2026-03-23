@@ -1,0 +1,94 @@
+﻿
+<head>
+	<title>Login</title>
+	<link rel="stylesheet" href="~/css/style.css">
+
+</head>
+
+@await Html.PartialAsync("_ToastNotification")
+
+<!-- Breadcrumb Start -->
+<div class="breadcrumb-wrap">
+	<div class="container">
+		<ul class="breadcrumb">
+			<li class="breadcrumb-item"><a asp-action="Index" asp-controller="Home">Home</a></li>
+			<li class="breadcrumb-item active">Login</li>
+		</ul>
+	</div>
+</div>
+<!-- Breadcrumb End -->
+<!-- Login Start -->
+<div class="login">
+	<div class="container">
+		<div class="row">
+			<div class="col-md-6">
+				<img src="~/images/login/login.png" class="img-fluid" alt="Phone image">
+			</div>
+			<div class="col-md-6">
+				<div class="login-form" style="margin-right: 50px; margin-left: 20px;">
+					<form asp-action="CheckLogin" asp-controller="Login" method="post">
+						<div class="row">
+							<div class="col-md-12">
+								<label>Username</label>
+								<input class="form-control" type="text" placeholder="Username" name="username" required>
+							</div>
+							<div class="col-md-12">
+								<label>Password</label>
+								<div class="input-group mb-3">
+									<input type="password" class="form-control" id="password" name="password" placeholder="Enter a password" required />
+								</div>
+							</div>
+
+							@* <div class="col-md-12"> *@
+							@* 	<div class="error-message" style="text-align: left; margin-bottom: 10px"> *@
+							@* 		<a class="small text-muted" asp-action="ForgetPass" asp-controller="Login">Forgot passsword?</a> *@
+							@* 	</div> *@
+							@* </div> *@
+
+							<div class="col-md-12"> 
+							 	<p> 
+							 		Don't have an account? <a asp-action="Register" asp-controller="Login">Register here</a> 
+							 	</p> 
+							 </div>
+
+							<div class="col-md-12">
+								<button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg btn-block">Sign in</button>
+							</div>
+
+							@* <div class="col-md-12"> *@
+							@* 	<div class="divider d-flex align-items-center my-4"> *@
+							@* 		<p class="text-center fw-bold mx-3 mb-0 text-muted">OR</p> *@
+							@* 	</div> *@
+							@* </div> *@
+
+							@* <div class="col-md-12"> *@
+							@* 	<a asp-controller="Login" asp-action="LoginByGoogle" data-mdb-ripple-init class="btn btn-primary btn-lg btn-block" style="background-color: #c83c2c;padding-top: 3px;padding-bottom: 3px;" role="button"> *@
+							@* 		<img src="~/images/login/google-icon.png" alt="Google Icon" width="37" style="margin-right: 20px; border-radius: 2px;">  Continue with Google *@
+							@* 	</a> *@
+							@* </div> *@
+
+						</div>
+					</form>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+@* <script> *@
+@* 	function password_show_hide() { *@
+@* 	  var x = document.getElementById("password"); *@
+@* 	  var show_eye = document.getElementById("show_eye"); *@
+@* 	  var hide_eye = document.getElementById("hide_eye"); *@
+@* 	  hide_eye.classList.remove("d-none"); *@
+@* 	  if (x.type === "password") { *@
+@* 		x.type = "text"; *@
+@* 		show_eye.style.display = "none"; *@
+@* 		hide_eye.style.display = "block"; *@
+@* 	  } else { *@
+@* 		x.type = "password"; *@
+@* 		show_eye.style.display = "block"; *@
+@* 		hide_eye.style.display = "none"; *@
+@* 	  } *@
+@* 	} *@
+@* </script> *@

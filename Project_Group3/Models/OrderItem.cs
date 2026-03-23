@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class OrderItem
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public int? orderId { get; set; }
+    public int? OrderId { get; set; }
 
-    public int? productId { get; set; }
+    public int? ProductId { get; set; }
 
-    public int? quantity { get; set; }
+    public int? Quantity { get; set; }
 
-    public decimal? unitPrice { get; set; }
+    public decimal? UnitPrice { get; set; }
 
-    public virtual OrderTable? order { get; set; }
+    public virtual OrderTable? Order { get; set; }
 
-    public virtual Product? product { get; set; }
+    public virtual Product? Product { get; set; }
 }

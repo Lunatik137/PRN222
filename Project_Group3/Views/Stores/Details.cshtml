@@ -1,0 +1,255 @@
+﻿@model dynamic
+
+@{
+    ViewData["Title"] = $"Đơn hàng của {Model.StoreName}";
+    var currentStatus = ViewBag.CurrentStatusFilter as string;
+}
+
+<h2>Quản lý đơn hàng: @Model.StoreName</h2>
+<p class="lead">
+    <strong>Người bán:</strong> @Model.SellerName
+</p>
+
+<div class="mb-3">
+    <form asp-action="Details" asp-route-id="@Model.StoreId" method="get">
+        <div class="input-group input-group-sm" style="max-width: 400px;">
+            <select name="statusFilter" class="form-control">
+                <option value="">-- Lọc theo trạng thái --</option>
+                <option value="Processing" selected="@(currentStatus == "Processing")">Processing</option>
+                <option value="Shipped" selected="@(currentStatus == "Shipped")">Shipped</option>
+                <option value="Delivered" selected="@(currentStatus == "Delivered")">Delivered</option>
+                <option value="Completed" selected="@(currentStatus == "Completed")">Completed</option>
+                <option value="RequestCancel" selected="@(currentStatus == "RequestCancel")">Request Cancel</option>
+                <option value="Cancelled" selected="@(currentStatus == "Cancelled")">Cancelled</option>
+                <option value="Returned" selected="@(currentStatus == "Returned")">Returned</option>
+            </select>
+            <button class="btn btn-primary" type="submit">Lọc</button>
+            <a asp-action="Details" asp-route-id="@Model.StoreId" class="btn btn-outline-secondary">Xóa lọc</a>
+        </div>
+    </form>
+</div>
+
+<hr />
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Mã Đơn</th>
+            <th>Người Mua</th>
+            <th>Tổng Tiền</th>
+            <th>Ngày yêu cầu</th>
+            <th>Trạng Thái</th>
+            <th>Hành Động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Orders != null && Model.Orders.Count > 0)
+        {
+            @foreach (var order in Model.Orders)
+            {
+                <tr>
+                    <td>#@order.OrderId</td>
+                    <td>@order.BuyerName</td>
+                    <td>@order.TotalPrice.ToString("N0") VNĐ</td>
+                    <td>
+                        @(order.ReturnRequestDate != null ? ((DateTime)order.ReturnRequestDate).ToString("dd/MM/yyyy HH:mm") : "")
+                    </td>
+
+                    <td>@order.Status</td>
+                    <td>
+                        @if (order.Status == "Cancelled" || order.Status == "ReturnRequested" || order.Status == "Returned")
+                        {
+                            <button type="button"
+                                    class="btn btn-sm btn-info view-reason-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#returnReasonModal"
+                                    data-orderid="@order.OrderId">
+                                Xem chi tiết
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5" class="text-center">Cửa hàng này chưa có đơn hàng nào (hoặc không khớp với bộ lọc).</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Store Order Pagination">
+        <ul class="pagination">
+            <li class="page-item @(Model.Page == 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Details"
+                   asp-route-id="@Model.StoreId"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-statusFilter="@currentStatus">Trước</a>
+            </li>
+
+            @for (int p = 1; p <= Model.TotalPages; p++)
+            {
+                <li class="page-item @(p == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Details"
+                       asp-route-id="@Model.StoreId"
+                       asp-route-page="@p"
+                       asp-route-statusFilter="@currentStatus">@p</a>
+                </li>
+            }
+
+            <li class="page-item @(Model.Page == Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Details"
+                   asp-route-id="@Model.StoreId"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-statusFilter="@currentStatus">Sau</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<div class="mt-3">
+    <a asp-action="Stores" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+    </a>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="returnReasonModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Chi tiết Hủy/Hoàn trả</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Mã Yêu cầu:</dt>
+                    <dd class="col-sm-9" id="modalReturnId">Đang tải...</dd>
+
+                    <dt class="col-sm-3">Mã Đơn hàng:</dt>
+                    <dd class="col-sm-9" id="modalReturnOrderId">Đang tải...</dd>
+
+                    <dt class="col-sm-3">Người yêu cầu (ID):</dt>
+                    <dd class="col-sm-9" id="modalReturnUserId">Đang tải...</dd>
+
+                    <dt class="col-sm-3">Ngày tạo yêu cầu:</dt>
+                    <dd class="col-sm-9" id="modalReturnCreatedAt">Đang tải...</dd>
+
+                    <dt class="col-sm-3">Trạng thái yêu cầu:</dt>
+                    <dd class="col-sm-9"><strong id="modalReturnStatus">Đang tải...</strong></dd>
+
+                    <dt class="col-sm-3">Lý do:</dt>
+                    <dd class="col-sm-9" id="modalReturnReason">Đang tải...</dd>
+                </dl>
+                <hr />
+                <div id="modalImagesContainer" style="display:none;">
+                    <h6>Hình ảnh đính kèm:</h6>
+                    <div id="modalImages" class="row"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <input type="hidden" id="modalOrderIdHidden" value="" />
+                <button type="button" class="btn btn-danger" id="btnReject" style="display:none;">Từ chối yêu cầu</button>
+                <button type="button" class="btn btn-success" id="btnAccept" style="display:none;">Chấp nhận hủy</button>
+                <button type="button" class="btn btn-secondary" id="btnClose" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+
+            $('#returnReasonModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var orderId = button.data('orderid');
+                var modal = $(this);
+
+                // Reset modal
+                modal.find('.modal-title').text('Chi tiết Yêu cầu cho Đơn hàng #' + orderId);
+                modal.find('#modalReturnId, #modalReturnOrderId, #modalReturnUserId, #modalReturnCreatedAt, #modalReturnStatus, #modalReturnReason').text('Đang tải...');
+                modal.find('#modalImages').empty();
+                modal.find('#modalImagesContainer').hide();
+                modal.find('#btnReject, #btnAccept').hide();
+                modal.find('#btnClose').show();
+                modal.find('#modalOrderIdHidden').val(orderId);
+
+                // AJAX lấy dữ liệu
+                $.get('@Url.Action("GetReturnDetails", "Stores")', { orderId: orderId })
+                    .done(function(data) {
+                        var req = data.returnRequestData;
+                        var status = data.orderStatus;
+
+                        if(req) {
+                            modal.find('#modalReturnId').text(req.id);
+                            modal.find('#modalReturnOrderId').text(req.orderId);
+                            modal.find('#modalReturnUserId').text(req.userId);
+                            modal.find('#modalReturnCreatedAt').text(new Date(req.createdAt).toLocaleString('vi-VN'));
+                            modal.find('#modalReturnStatus').text(req.status);
+                            modal.find('#modalReturnReason').text(req.reason);
+
+                            // Hiển thị ảnh
+                            if(req.images && req.images.trim() !== '') {
+                                var imagesHtml = '';
+                                var files = req.images.split(';');
+                                files.forEach(function(f) {
+                                    if(f.trim() !== '') {
+                                        imagesHtml += '<div class="col-4 mb-2"><img src="/uploads/' + f + '" class="img-fluid img-thumbnail" alt="Ảnh bằng chứng"></div>';
+                                    }
+                                });
+                                modal.find('#modalImages').html(imagesHtml);
+                                modal.find('#modalImagesContainer').show();
+                            }
+                        } else {
+                            modal.find('#modalReturnId').text('N/A');
+                            modal.find('#modalReturnOrderId').text(orderId);
+                            modal.find('#modalReturnUserId').text('N/A');
+                            modal.find('#modalReturnCreatedAt').text('N/A');
+                            modal.find('#modalReturnStatus').text('N/A');
+                            modal.find('#modalReturnReason').text('Không tìm thấy yêu cầu trả hàng.');
+                        }
+
+                        // Nút Accept/Reject chỉ hiển thị với trạng thái RequestCancel
+                        if(status === 'ReturnRequested') {
+                            modal.find('#btnReject, #btnAccept').show();
+                            modal.find('#btnClose').hide();
+                        } else {
+                            modal.find('#btnReject, #btnAccept').hide();
+                            modal.find('#btnClose').show();
+                        }
+
+                    }).fail(function() {
+                        modal.find('#modalReturnReason').text('Lỗi khi tải dữ liệu.');
+                    });
+            });
+
+            // Accept
+            $('#btnAccept').on('click', function() {
+                var orderId = $('#modalOrderIdHidden').val();
+                if(!confirm('Bạn có chắc chắn CHẤP NHẬN hủy đơn hàng #' + orderId + '?')) return;
+
+                $.post('@Url.Action("AcceptCancel", "Stores")', { orderId: orderId }, function(resp){
+                    alert(resp.message);
+                    if(resp.success) location.reload();
+                });
+            });
+
+            // Reject
+            $('#btnReject').on('click', function() {
+                var orderId = $('#modalOrderIdHidden').val();
+                if(!confirm('Bạn có chắc chắn TỪ CHỐI yêu cầu hủy đơn hàng #' + orderId + '?')) return;
+
+                $.post('@Url.Action("RejectCancel", "Stores")', { orderId: orderId }, function(resp){
+                    alert(resp.message);
+                    if(resp.success) location.reload();
+                });
+            });
+
+        });
+    </script>
+}

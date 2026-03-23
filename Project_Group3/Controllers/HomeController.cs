@@ -1,12 +1,15 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Project_Group3.Models;
+using PRN222_Group3.Models;
+using PRN222_Group3.Repository;
 
-namespace Project_Group3.Controllers
+namespace PRN222_Group3.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly UserRepository userRepository = new();
+
 
         public HomeController(ILogger<HomeController> logger)
         {
@@ -15,6 +18,8 @@ namespace Project_Group3.Controllers
 
         public IActionResult Index()
         {
+            ViewData["users"] = userRepository.GetUsers();
+
             return View();
         }
 
@@ -29,4 +34,7 @@ namespace Project_Group3.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
+
+    // view model
+
 }

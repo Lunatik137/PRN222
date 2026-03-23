@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class Feedback
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public int? sellerId { get; set; }
+    public int? SellerId { get; set; }
 
-    public decimal? averageRating { get; set; }
+    public decimal? AverageRating { get; set; }
 
-    public int? totalReviews { get; set; }
+    public int? TotalReviews { get; set; }
 
-    public decimal? positiveRate { get; set; }
+    public decimal? PositiveRate { get; set; }
 
-    public virtual User? seller { get; set; }
+    public virtual User? Seller { get; set; }
 }

@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class Store
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public int? sellerId { get; set; }
+    public int? SellerId { get; set; }
 
-    public string? storeName { get; set; }
+    public string? StoreName { get; set; }
 
-    public string? description { get; set; }
+    public string? Description { get; set; }
 
-    public string? bannerImageURL { get; set; }
+    public string? BannerImageUrl { get; set; }
 
-    public byte storeLevel { get; set; }
+    public byte StoreLevel { get; set; }
+
+    public virtual User? Seller { get; set; }
 
     public virtual ICollection<StoreUpgradeRequest> StoreUpgradeRequests { get; set; } = new List<StoreUpgradeRequest>();
-
-    public virtual User? seller { get; set; }
 }

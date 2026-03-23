@@ -1,0 +1,381 @@
+﻿@model IEnumerable<PRN222_Group3.Models.Dispute>
+
+@{
+    ViewData["Title"] = "Dispute Management";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<hr />
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Filter</h5>
+        <form asp-action="Index" method="get">
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="status">Status</label>
+                    <select id="status" name="status" class="form-control">
+                        <option value="">-- All --</option>
+                        <option value="Open">Open</option>
+                        <option value="Reject">Reject</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+
+
+
+                <div class="form-group col-md-3 align-self-end">
+                    <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<table class="table table-bordered table-striped">
+    <thead class="thead-dark">
+        <tr>
+            <th>ID</th>
+            <th>Order Date</th>
+            <th>Total</th>
+            <th>Order Status</th>
+            <th>Raised By</th>
+            <th>Status</th>
+            <th>Detail</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@(item.Order?.OrderDate.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                    <td>@(item.Order?.TotalPrice)</td>
+                    <td>@(item.Order?.Status ?? "N/A")</td>
+                    <td>@(item.RaisedByNavigation?.Username ?? "N/A")</td>
+                    <td><span>@item.Status</span></td>
+                    @* <td>@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td> *@
+                    <td>
+                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                                data-bs-target="#disputeModal" data-dispute-id="@item.Id" data-dispute-orderid="@item.OrderId"
+                                data-dispute-raisedby="@item.RaisedBy" data-dispute-description="@item.Description"
+                                data-dispute-status="@item.Status" data-dispute-resolution="@item.Resolution"
+                                data-dispute-raisedname="@item.RaisedByNavigation.Username">
+                            Seller
+                        </button>
+                        @{
+                            var returnReq = ((List<ReturnRequest>)ViewBag.ReturnRequests)
+                            .FirstOrDefault(r => r.OrderId == item.OrderId);
+                        }
+
+                        @if (returnReq != null)
+                        {
+                            <button type="button"
+                                    class="btn btn-info btn-sm buyer-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#buyerModal"
+                                    data-buyer-username="@returnReq.User?.Username"
+                                    data-buyer-reason="@returnReq.Reason"
+                                    data-buyer-status="@returnReq.Status"
+                                    data-buyer-images="@returnReq.Images">
+                                Buyer
+                            </button>
+                        }
+
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="9" class="text-center">No disputes found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (ViewBag.TotalPages > 1)
+{
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            @{
+                var prevDisabled = !ViewBag.HasPreviousPage ? "disabled" : "";
+                var nextDisabled = !ViewBag.HasNextPage ? "disabled" : "";
+            }
+
+            <li class="page-item @prevDisabled">
+                <a class="page-link" asp-action="Index" asp-route-pageNumber="@(ViewBag.PageNumber - 1)"
+                    asp-route-status="@ViewData["CurrentStatus"]">
+                    Previous
+                </a>
+            </li>
+
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(i == ViewBag.PageNumber ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-pageNumber="@i"
+                        asp-route-status="@ViewData["CurrentStatus"]">
+                        @i
+                    </a>
+                </li>
+            }
+
+            <li class="page-item @nextDisabled">
+                <a class="page-link" asp-action="Index" asp-route-pageNumber="@(ViewBag.PageNumber + 1)"
+                    asp-route-status="@ViewData["CurrentStatus"]">
+                    Next
+                </a>
+            </li>
+        </ul>
+    </nav>
+}
+
+
+@* modal *@
+
+<div class="modal fade" id="disputeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="disputeUpdateForm">
+                <div class="modal-body">
+
+                    <input type="hidden" id="disputeId" name="Id">
+                    <input type="text" id="disputeOrderId" name="OrderId" class="form-control" readonly hidden>
+                    <input type="text" id="disputeRaisedBy" name="RaisedBy" class="form-control" readonly hidden>
+                    <div class="mb-3">
+                        <label>Raised By</label>
+                        <input type="text" id="disputeRaisedName" name="RaisedBy" class="form-control" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea id="disputeDescription" name="Description" class="form-control" rows="3"
+                            readonly></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Status</label>
+                        <select id="disputeStatus" name="Status" class="form-select">
+                            <option value="Open">Open</option>
+                            <option value="Reject">Reject</option>
+                            <option value="Resolved">Resolved</option>
+                            @* <option value="Closed">Closed</option> *@
+                        </select>
+                    </div>
+
+                    @* <div class="mb-3"> *@
+                    @*     <label>View detail by seller</label> *@
+                    @*     <textarea id="disputeResolution" name="Resolution" class="form-control" rows="3"></textarea> *@
+                    @* </div> *@
+                    <div class="mb-3">
+                        <label>View detail by seller (Images)</label>
+                        <!-- <textarea id="disputeResolution" name="Resolution" class="form-control" rows="3"></textarea> -->
+                        <div id="sellerImages" class="mt-2 d-flex flex-wrap gap-2"></div>
+                    </div>
+
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="buyerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Thông tin yêu cầu từ Buyer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-3">
+                    <label>Người viết</label>
+                    <input id="buyerUsername" type="text" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label>Description (Reason)</label>
+                    <textarea id="buyerReason" class="form-control" rows="3" readonly></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label>Status</label>
+                    <input id="buyerStatus" type="text" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label>View detail by buyer (Images)</label>
+                    <div id="buyerImages" class="d-flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+       document.querySelectorAll('[data-bs-target="#disputeModal"]').forEach(button => {
+        button.addEventListener('click', function () {
+
+            const id = this.getAttribute('data-dispute-id');
+            const orderId = this.getAttribute('data-dispute-orderid');
+            const raisedBy = this.getAttribute('data-dispute-raisedby');
+            const description = this.getAttribute('data-dispute-description');
+            const status = this.getAttribute('data-dispute-status');
+            const resolution = this.getAttribute('data-dispute-resolution');
+            const raisedName = this.getAttribute('data-dispute-raisedname');
+
+            document.getElementById('disputeId').value = id;
+            document.getElementById('disputeOrderId').value = orderId;
+            document.getElementById('disputeRaisedBy').value = raisedBy;
+            document.getElementById('disputeDescription').value = description;
+            document.getElementById('disputeStatus').value = status;
+            document.getElementById('disputeRaisedName').value = raisedName;
+
+            // Hiển thị ảnh Seller
+            const imgContainer = document.getElementById("sellerImages");
+            imgContainer.innerHTML = "";
+
+            if (resolution && resolution !== "null") {
+                const images = resolution.split(";");
+                images.forEach(imgName => {
+                    if (!imgName.trim()) return;
+                    const img = document.createElement("img");
+                    img.src = `/uploads/${imgName}`;
+                    img.style.width = "120px";
+                    img.style.height = "120px";
+                    img.classList.add("img-thumbnail");
+                    imgContainer.appendChild(img);
+                });
+            }
+        });
+    });
+
+</script>
+<script>
+    // AJAX submit for update form (SignalR removed). We still update the current page locally.
+    document.getElementById('disputeUpdateForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+            const res = await fetch('/Dispute/Update', { method: 'POST', body: formData });
+            if (res.ok) {
+                const localPayload = {
+                    Id: formData.get('Id') ? parseInt(formData.get('Id')) : null,
+                    OrderId: formData.get('OrderId'),
+                    OrderDate: null,
+                    Buyer: null,
+                    Total: null,
+                    OrderStatus: null,
+                    RaisedBy: formData.get('RaisedBy'),
+                    Status: formData.get('Status'),
+                    Resolution: formData.get('Resolution')
+                };
+
+                updateLocalRow(localPayload);
+
+                // close modal
+                const modalEl = document.getElementById('disputeModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modalInstance.hide();
+            } else {
+                const text = await res.text();
+                alert('Failed to update dispute: ' + text);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Network error while updating dispute.');
+        }
+    });
+
+    // Update the table row and button dataset locally for an id using a partial payload
+    function updateLocalRow(payload) {
+        if (!payload || !payload.Id) return;
+        const id = payload.Id;
+        const button = document.querySelector(`[data-dispute-id='${id}']`);
+        if (!button) return;
+        const tr = button.closest('tr');
+        if (!tr) return;
+
+        console.log('Locally updating dispute row for id=', id, ' with payload=', payload);
+
+        const statusCell = tr.querySelector('td .dispute-status');
+        const tds = tr.querySelectorAll('td');
+        if (tds && tds.length >= 7) {
+            if (payload.OrderId != null) tds[1].textContent = payload.OrderId;
+            if (payload.OrderDate != null) tds[2].textContent = payload.OrderDate;
+            if (payload.Buyer != null) tds[3].textContent = payload.Buyer;
+            if (payload.Total != null) tds[4].textContent = Number(payload.Total).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+            if (payload.OrderStatus != null) tds[5].textContent = payload.OrderStatus;
+            if (payload.RaisedBy != null) tds[6].textContent = payload.RaisedBy;
+            if (payload.Status != null) {
+                if (statusCell) {
+                    statusCell.textContent = payload.Status;
+                } else if (tds[5]) {
+                    // fallback: update by index if structured differently
+                    tds[5].textContent = payload.Status;
+                }
+            }
+        }
+
+        // update the button's data attributes so future modal opens show current values
+        if (payload.Status != null) button.setAttribute('data-dispute-status', payload.Status);
+        if (payload.Resolution != null) button.setAttribute('data-dispute-resolution', payload.Resolution);
+    }
+</script>
+
+<script>
+    document.querySelectorAll('.buyer-btn').forEach(btn => {
+
+        btn.addEventListener('click', function () {
+
+            // Get values from data-*
+            const username = this.getAttribute('data-buyer-username');
+            const reason = this.getAttribute('data-buyer-reason');
+            const status = this.getAttribute('data-buyer-status');
+            const imagesStr = this.getAttribute('data-buyer-images'); // "a.jpg;b.jpg;c.png"
+
+            // Set text inputs
+            document.getElementById("buyerUsername").value = username || "";
+            document.getElementById("buyerReason").value = reason || "";
+            document.getElementById("buyerStatus").value = status || "";
+
+            // Show images
+            const imgContainer = document.getElementById("buyerImages");
+            imgContainer.innerHTML = "";
+
+            if (imagesStr) {
+                const images = imagesStr.split(";"); // ← tách chuỗi thành mảng
+
+                images.forEach(imgName => {
+                    if (!imgName.trim()) return;
+
+                    const img = document.createElement("img");
+                    img.src = `/uploads/${imgName}`;
+                    img.style.width = "120px";
+                    img.style.height = "120px";
+                    img.classList.add("img-thumbnail");
+                    imgContainer.appendChild(img);
+                });
+            }
+
+        });
+    });
+</script>
+

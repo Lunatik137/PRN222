@@ -1,0 +1,80 @@
+﻿@model IEnumerable<dynamic>
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+
+@{
+    ViewData["Title"] = "Quản lý Cửa hàng";
+    var total = ViewBag.Total ?? 0;
+    var page = ViewBag.Page ?? 1;
+    var pageSize = ViewBag.PageSize ?? 10;
+    var currentSearch = ViewBag.CurrentSearch as string;
+}
+
+<h2>Danh sách cửa hàng</h2>
+<div class="mb-3">
+    <form asp-action="Stores" method="get">
+
+        <div class="input-group input-group-sm">
+
+            <input type="text"
+                   name="searchString"
+                   value="@currentSearch"
+                   class="form-control"
+                   placeholder="Tìm theo tên shop hoặc người bán..."
+                   aria-label="Tìm theo tên người bán">
+
+            <button class="btn btn-primary" type="submit">Tìm kiếm</button>
+        </div>
+    </form>
+</div>
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Tên Shop</th>
+            <th>Người Bán</th>
+            <th>Tổng Đơn</th>
+            <th>Processing</th>
+            <th>Shipped</th>
+            <th>Delivered</th>
+            <th>Completed</th>
+            <th>Request Cancel</th>
+            <th>Cancelled</th>
+            <th>Returned</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Count() > 0)
+        {
+            @foreach (dynamic s in Model)
+            {
+                <tr>
+                    <td>
+                        @if ((await AuthorizationService.AuthorizeAsync(User, "UserManageWrite")).Succeeded)
+                        {
+                            <a asp-action="Details" asp-route-id="@s.Id">@s.StoreName</a>
+                        }
+                        else
+                        {
+                            @s.StoreName
+                        }
+                    </td>
+                    <td>@s.SellerName</td>
+                    <td>@s.TotalOrders</td>
+                    <td>@s.Processing</td>
+                    <td>@s.Shipped</td>
+                    <td>@s.Delivered</td>
+                    <td>@s.Completed</td>
+                    <td>@s.RequestCancel</td>
+                    <td>@s.Cancelled</td>
+                    <td>@s.Returned</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="9" class="text-center">Không tìm thấy cửa hàng nào.</td>
+            </tr>
+        }
+    </tbody>
+</table>

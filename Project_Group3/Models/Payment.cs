@@ -1,25 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class Payment
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public int? orderId { get; set; }
+    public int? OrderId { get; set; }
 
-    public int? userId { get; set; }
+    public int? UserId { get; set; }
 
-    public decimal? amount { get; set; }
+    public decimal? Amount { get; set; }
 
-    public string? method { get; set; }
+    public string? Method { get; set; }
 
-    public string? status { get; set; }
+    public string? Status { get; set; }
 
-    public DateTime? paidAt { get; set; }
+    public DateTime? PaidAt { get; set; }
 
-    public virtual OrderTable? order { get; set; }
+    public virtual OrderTable? Order { get; set; }
 
-    public virtual User? user { get; set; }
+    public virtual User? User { get; set; }
 }

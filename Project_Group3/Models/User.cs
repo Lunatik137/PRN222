@@ -1,51 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class User
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public string? username { get; set; }
+    public string? Username { get; set; }
 
-    public string? email { get; set; }
+    public string? Email { get; set; }
 
-    public string? password { get; set; }
+    public string? Password { get; set; }
 
-    public string? role { get; set; }
+    public string? Role { get; set; }
 
-    public string? avatarURL { get; set; }
+    public string? AvatarUrl { get; set; }
 
-    public bool isApproved { get; set; }
+    public bool IsApproved { get; set; }
 
-    public bool isLocked { get; set; }
+    public bool IsLocked { get; set; }
 
-    public DateTime? lockedAt { get; set; }
+    public string? LockedReason { get; set; }
 
-    public string? lockedReason { get; set; }
+    public DateTime? LockedAt { get; set; }
 
-    public DateTime createdAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public string? twoFactorSecret { get; set; }
+    public string? TwoFactorSecret { get; set; }
 
-    public bool? isTwoFactorEnabled { get; set; }
+    public bool? IsTwoFactorEnabled { get; set; }
 
-    public string? twoFactorRecoveryCodes { get; set; }
+    public string? TwoFactorRecoveryCodes { get; set; }
 
-    public string? registrationIP { get; set; }
+    public string? RegistrationIp { get; set; }
 
-    public string? lastLoginIP { get; set; }
+    public string? LastLoginIp { get; set; }
 
-    public DateTime? lastLoginTimestamp { get; set; }
+    public DateTime? LastLoginTimestamp { get; set; }
+
+    public string? Phone { get; set; }
 
     public int? RiskScore { get; set; }
 
     public string? RiskLevel { get; set; }
 
     public DateTime? LastRiskAssessment { get; set; }
-
-    public string? Phone { get; set; }
 
     public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
 
@@ -55,9 +55,9 @@ public partial class User
 
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
-    public virtual ICollection<Message> Messagereceivers { get; set; } = new List<Message>();
+    public virtual ICollection<Message> MessageReceivers { get; set; } = new List<Message>();
 
-    public virtual ICollection<Message> Messagesenders { get; set; } = new List<Message>();
+    public virtual ICollection<Message> MessageSenders { get; set; } = new List<Message>();
 
     public virtual ICollection<OrderTable> OrderTables { get; set; } = new List<OrderTable>();
 
@@ -71,7 +71,8 @@ public partial class User
 
     public virtual ICollection<RiskAssessment> RiskAssessments { get; set; } = new List<RiskAssessment>();
 
-    public virtual ICollection<StoreUpgradeRequest> StoreUpgradeRequests { get; set; } = new List<StoreUpgradeRequest>();
-
     public virtual ICollection<Store> Stores { get; set; } = new List<Store>();
+
+    public virtual ICollection<StoreUpgradeRequest> StoreUpgradeRequests { get; set; } = new List<StoreUpgradeRequest>();
 }
+

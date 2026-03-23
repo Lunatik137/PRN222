@@ -1,0 +1,89 @@
+﻿<link rel="stylesheet" href="~/css/style.css">
+@{
+    var message = TempData["Message"]?.ToString();
+    var messageType = TempData["MessageType"]?.ToString();
+    //Console.WriteLine(message);
+}
+
+
+
+@if (message != null)
+{
+    <div id="toast" class="toast @messageType" role="alert" aria-live="assertive" aria-atomic="true">
+
+        <div class="toast-body">
+            <span>@message</span>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">&times;</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var toastElement = document.getElementById('toast');
+            var toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: 5000
+            });
+
+            // Hiển thị Toast
+            toast.show();
+
+            // Đóng Toast khi nhấn nút "X"
+            var closeButton = toastElement.querySelector('[data-dismiss="toast"]');
+            closeButton.addEventListener('click', function () {
+                toast.hide();
+            });
+        });
+    </script>
+}
+
+<style>
+    /* Cấu trúc chính của Toast */
+    .toast {
+        visibility: hidden;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #4CAF50; /* Màu thành công */
+        font-family: 'Open Sans', sans-serif;
+        color: white;
+        padding: 5px 10px;
+        font-size: 16px;
+        transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transform: translateX(100%); /* Đặt Toast ở ngoài màn hình khi chưa hiển thị */
+    }
+
+        /* Kiểu thành công (success) */
+        .toast.success {
+            background-color: #4CAF50; /* Màu xanh lá */
+        }
+
+        /* Kiểu lỗi (error) */
+        .toast.error {
+            background-color: #f44336; /* Màu đỏ */
+        }
+
+        /* Khi Toast hiển thị */
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(0); /* Toast trượt vào từ bên phải */
+        }
+
+        /* Kiểu nút đóng (X) */
+        .toast .close {
+            color: white;
+            font-size: 20px;
+            opacity: 0.7;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+            /* Hover effect cho nút đóng */
+            .toast .close:hover {
+                opacity: 1;
+            }
+
+</style>

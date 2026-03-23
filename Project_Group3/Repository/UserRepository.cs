@@ -1,145 +1,180 @@
+﻿
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Project_Group3.Models;
-using Project_Group3.Repository.Interfaces;
+using PRN222_Group3.Models;
 
-namespace Project_Group3.Repository;
-
-public sealed class UserRepository(CloneEbayDbContext dbContext) : IUserRepository
+namespace PRN222_Group3.Repository
 {
-    public Task<List<User>> GetUsersAsync(CancellationToken cancellationToken = default)
-        => dbContext.Users.ToListAsync(cancellationToken);
-
-    public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-        => dbContext.Users.FirstOrDefaultAsync(x => x.id == id, cancellationToken);
-
-    public Task<User?> GetByCredentialsAsync(string username, string password, CancellationToken cancellationToken = default)
-        => dbContext.Users.FirstOrDefaultAsync(
-            u => u.username == username && u.password == password,
-            cancellationToken);
-
-    public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
-        => dbContext.Users.FirstOrDefaultAsync(u => u.email == email, cancellationToken);
-
-    public Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
-        => dbContext.Users.FirstOrDefaultAsync(u => u.username == username, cancellationToken);
-
-    public async Task<bool> CreateUserAsync(User user, CancellationToken cancellationToken = default)
+    public class UserRepository
     {
-        await dbContext.Users.AddAsync(user, cancellationToken);
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
-    }
+        private CloneEbayDbContext _context;
 
-    public async Task<bool> UpdateUserAsync(User user, CancellationToken cancellationToken = default)
-    {
-        dbContext.Users.Update(user);
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
-    }
-
-    public async Task<bool> EnableTwoFactorAsync(int userId, string secret, string recoveryCodes, CancellationToken cancellationToken = default)
-    {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.id == userId, cancellationToken);
-        if (user is null) return false;
-
-        user.isTwoFactorEnabled = true;
-        user.twoFactorSecret = secret;
-        user.twoFactorRecoveryCodes = recoveryCodes;
-
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
-    }
-
-    public async Task<bool> DisableTwoFactorAsync(int userId, CancellationToken cancellationToken = default)
-    {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.id == userId, cancellationToken);
-        if (user is null) return false;
-
-        user.isTwoFactorEnabled = false;
-        user.twoFactorSecret = null;
-        user.twoFactorRecoveryCodes = null;
-
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
-    }
-
-    public async Task<bool> UpdateRecoveryCodesAsync(int userId, string recoveryCodes, CancellationToken cancellationToken = default)
-    {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.id == userId, cancellationToken);
-        if (user is null) return false;
-
-        user.twoFactorRecoveryCodes = recoveryCodes;
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
-    }
-
-    public Task<List<User>> GetUsersByLastLoginIpAsync(string ipAddress, CancellationToken cancellationToken = default)
-        => dbContext.Users
-            .Where(u => u.lastLoginIP == ipAddress && !u.isLocked)
-            .ToListAsync(cancellationToken);
-
-    public async Task<(IEnumerable<User> Items, int Total)> GetPagedAsync(
-        string? keyword,
-        bool? isApproved,
-        bool? isLocked,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken = default)
-    {
-        var q = dbContext.Users.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(keyword))
+        public UserRepository()
         {
-            var kw = keyword.Trim();
-            q = q.Where(x => (x.username ?? string.Empty).Contains(kw) || (x.email ?? string.Empty).Contains(kw));
+            _context = new CloneEbayDbContext();
         }
 
-        if (isApproved.HasValue)
+
+        public List<User> GetUsers()
         {
-            q = q.Where(x => x.isApproved == isApproved.Value);
+            _context = new CloneEbayDbContext();
+            return _context.Users.ToList();
         }
 
-        if (isLocked.HasValue)
+        public async Task<User?> GetUser(string username, string password)
         {
-            q = q.Where(x => x.isLocked == isLocked.Value);
+            _context = new CloneEbayDbContext();
+            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username && u.Password == password);
         }
 
-        var total = await q.CountAsync(cancellationToken);
+        public async Task<User?> GetUserByEmail(string email)
+        {
+            _context = new CloneEbayDbContext();
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        }
 
-        var items = await q
-            .OrderByDescending(x => x.createdAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
+        public async Task<User?> GetUserByUsername(string username)
+        {
+            _context = new CloneEbayDbContext();
+            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        }
 
-        return (items, total);
-    }
+        public virtual async Task<bool> UpdateUserAsync(User user)
+        {
+            try
+            {
+                _context = new CloneEbayDbContext();
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
 
-    public async Task<bool> ApproveAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var u = await GetByIdAsync(id, cancellationToken);
-        if (u is null) return false;
+        public async Task<bool> EnableTwoFactorAsync(int userId, string secret, string recoveryCodes)
+        {
+            _context = new CloneEbayDbContext();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return false;
 
-        u.isApproved = true;
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
-    }
+            user.IsTwoFactorEnabled = true;
+            user.TwoFactorSecret = secret;
+            user.TwoFactorRecoveryCodes = recoveryCodes;
+            return await _context.SaveChangesAsync() > 0;
+        }
 
-    public async Task<bool> LockAsync(int id, string reason, CancellationToken cancellationToken = default)
-    {
-        var u = await GetByIdAsync(id, cancellationToken);
-        if (u is null) return false;
+         public async Task<List<User>> GetUsersByLastLoginIpAsync(string ipAddress)
+        {
+            _context = new CloneEbayDbContext();
+            return await _context.Users
+                .Where(u => u.LastLoginIp == ipAddress && !u.IsLocked)
+                .ToListAsync();
+        }
 
-        u.isLocked = true;
-        u.lockedAt = DateTime.UtcNow;
-        u.lockedReason = reason;
+        public async Task<bool> DisableTwoFactorAsync(int userId)
+        {
+            _context = new CloneEbayDbContext();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return false;
 
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
-    }
+            user.IsTwoFactorEnabled = false;
+            user.TwoFactorSecret = null;
+            user.TwoFactorRecoveryCodes = null;
+            return await _context.SaveChangesAsync() > 0;
+        }
 
-    public async Task<bool> UnlockAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var u = await GetByIdAsync(id, cancellationToken);
-        if (u is null) return false;
+        public async Task<bool> UpdateRecoveryCodesAsync(int userId, string recoveryCodes)
+        {
+            _context = new CloneEbayDbContext();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return false;
 
-        u.isLocked = false;
-        u.lockedAt = null;
-        u.lockedReason = null;
+            user.TwoFactorRecoveryCodes = recoveryCodes;
+            return await _context.SaveChangesAsync() > 0;
+        }
 
-        return await dbContext.SaveChangesAsync(cancellationToken) > 0;
+        public virtual async Task<(IEnumerable<User> Items, int Total)> GetPagedAsync(
+            string? keyword, bool? isApproved, bool? isLocked,
+            int page, int pageSize)
+        {
+            var q = _context.Users.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var kw = keyword.Trim();
+                q = q.Where(x => x.Username.Contains(kw) || x.Email.Contains(kw));
+            }
+            if (isApproved.HasValue) q = q.Where(x => x.IsApproved == isApproved.Value);
+            if (isLocked.HasValue) q = q.Where(x => x.IsLocked == isLocked.Value);
+
+            var total = await q.CountAsync();
+
+            var items = await q.OrderByDescending(x => x.CreatedAt)
+                               .Skip((page - 1) * pageSize)
+                               .Take(pageSize)
+                               .ToListAsync();
+
+            return (items, total);
+        }
+
+        // Lấy theo Id
+        public virtual Task<User?> GetByIdAsync(int id) =>
+            _context.Users.FirstOrDefaultAsync(x => x.Id == id);
+
+        // Duyệt tài khoản
+        public virtual async Task<bool> ApproveAsync(int id)
+        {
+            var u = await GetByIdAsync(id);
+            if (u is null) return false;
+            u.IsApproved = true;
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        // Khoá tài khoản
+        public virtual async Task<bool> LockAsync(int id, string reason)
+        {
+            var u = await GetByIdAsync(id);
+            if (u is null) return false;
+            u.IsLocked = true;
+            u.LockedAt = DateTime.UtcNow;
+            u.LockedReason = reason;
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        // Mở khoá tài khoản
+        public virtual async Task<bool> UnlockAsync(int id)
+        {
+            var u = await GetByIdAsync(id);
+            if (u is null) return false;
+            u.IsLocked = false;
+            u.LockedAt = null;
+            u.LockedReason = null;
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        // Create new user
+        public virtual async Task<bool> CreateUserAsync(User user)
+        {
+            try
+            {
+                _context = new CloneEbayDbContext();
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
     }
 }
+

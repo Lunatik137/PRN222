@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class Coupon
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public string? code { get; set; }
+    public string? Code { get; set; }
 
-    public decimal? discountPercent { get; set; }
+    public decimal? DiscountPercent { get; set; }
 
-    public DateTime? startDate { get; set; }
+    public DateTime? StartDate { get; set; }
 
-    public DateTime? endDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
-    public int? maxUsage { get; set; }
+    public int? MaxUsage { get; set; }
 
-    public int? productId { get; set; }
+    public int? ProductId { get; set; }
 
-    public virtual Product? product { get; set; }
+    public virtual Product? Product { get; set; }
 }

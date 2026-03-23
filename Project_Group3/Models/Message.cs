@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Project_Group3.Models;
+namespace PRN222_Group3.Models;
 
 public partial class Message
 {
-    public int id { get; set; }
+    public int Id { get; set; }
 
-    public int? senderId { get; set; }
+    public int? SenderId { get; set; }
 
-    public int? receiverId { get; set; }
+    public int? ReceiverId { get; set; }
 
-    public string? content { get; set; }
+    public string? Content { get; set; }
 
-    public DateTime? timestamp { get; set; }
+    public DateTime? Timestamp { get; set; }
 
-    public virtual User? receiver { get; set; }
+    public virtual User? Receiver { get; set; }
 
-    public virtual User? sender { get; set; }
+    public virtual User? Sender { get; set; }
 }

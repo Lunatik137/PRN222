@@ -1,0 +1,113 @@
+﻿@model List<PRN222_Group3.Models.Product>
+@{
+    ViewData["Title"] = "Quản Lý Sản Phẩm";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Quản Lý Sản Phẩm</h1>
+    <form method="get" asp-controller="Product" asp-action="Product" class="mb-3 d-flex">
+        <input type="text" name="search" value="@ViewBag.Search"
+               class="form-control mr-2" placeholder="Tìm theo tên sản phẩm..." />
+        <button type="submit" class="btn btn-primary">
+            Tìm kiếm
+        </button>
+    </form>
+
+    <!-- Products Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Danh Sách Sản Phẩm</h6>
+            <span class="badge badge-info">Tổng: @Model.Count sản phẩm</span>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên sản phẩm</th>
+                        <th>Danh mục</th>
+                        <th>Người bán</th>
+                        <th>Giá</th>
+                        @* <th>Loại</th> *@
+                        <th>Trạng thái</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model)
+                    {
+                        <tr>
+                            <td>@product.Id</td>
+                            <td>@product.Title</td>
+                            <td>@product.Category?.Name</td>
+                            <td>@product.Seller?.Username</td>
+                            <td>@FormatCurrency(product.Price)</td>
+                            <td>@Capitalize(product.Status)</td>
+                            <td>
+                                <button class="btn btn-sm btn-secondary"
+                                        onclick="openStatusPopup(@product.Id)">
+                                    Action
+                                </button>
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+                
+            </table>
+
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="statusForm" method="post" asp-controller="Product" asp-action="ChangeStatus">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change status</h5>
+                   
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="productId" />
+
+                    <p>Delete or pending product:</p>
+
+                    <select name="status" class="form-control">
+                        <option value="pending">Active</option>
+                        <option value="pending">Pending</option>
+                        <option value="delete">Delete</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Aprove</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public string FormatCurrency(decimal value)
+    {
+        return value.ToString("N0") + " VND";
+    }
+}
+@functions {
+    public string Capitalize(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        return char.ToUpper(text[0]) + text.Substring(1).ToLower();
+    }
+}
+<script>
+    function openStatusPopup(id) {
+        document.getElementById("productId").value = id;
+        $('#statusModal').modal('show');
+    }
+</script>
+

@@ -1,0 +1,80 @@
+@{
+    ViewData["Title"] = "Recovery Codes - Two-Factor Authentication";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-shield-alt"></i> Two-Factor Authentication Enabled</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Important!</strong> Save these recovery codes in a secure location.
+                    </div>
+
+                    <p>You can use these recovery codes to access your account if you lose access to your authenticator app.</p>
+                    <p><strong>Each code can only be used once.</strong></p>
+
+                    <div class="recovery-codes-container bg-light p-4 rounded mt-3">
+                        <div class="row">
+                            @if (ViewBag.RecoveryCodes != null)
+                            {
+                                @foreach (var code in ViewBag.RecoveryCodes)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <div class="recovery-code">
+                                            <code class="fs-5">@code</code>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="button" class="btn btn-primary" onclick="copyRecoveryCodes()">
+                            <i class="fas fa-copy"></i> Copy All Codes
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="printRecoveryCodes()">
+                            <i class="fas fa-print"></i> Print Codes
+                        </button>
+                        <a href="@Url.Action("UserDashboard", "UserDashboard")" class="btn btn-success">
+                            <i class="fas fa-check"></i> I've Saved My Codes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .recovery-code {
+        background: white;
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        text-align: center;
+        font-family: 'Courier New', monospace;
+    }
+
+    .recovery-codes-container {
+        border: 2px dashed #6c757d;
+    }
+</style>
+
+<script>
+    function copyRecoveryCodes() {
+        const codes = @Html.Raw(Json.Serialize(ViewBag.RecoveryCodes));
+        const text = codes.join('\n');
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Recovery codes copied to clipboard!');
+        });
+    }
+
+    function printRecoveryCodes() {
+        window.print();
+    }
+</script>

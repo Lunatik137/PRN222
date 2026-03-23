@@ -1,0 +1,64 @@
+@{
+    ViewData["Title"] = "Disable Two-Factor Authentication";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0"><i class="fas fa-shield-alt"></i> Disable Two-Factor Authentication</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Warning!</strong> 
+                        Disabling two-factor authentication will make your account less secure.
+                    </div>
+
+                    <p>To disable two-factor authentication, please enter a valid 6-digit code from your authenticator app:</p>
+
+                    <form asp-action="Disable" method="post">
+                        <div class="mb-3">
+                            <label for="verificationCode" class="form-label">Verification Code</label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="verificationCode" 
+                                   name="verificationCode" 
+                                   maxlength="6" 
+                                   pattern="[0-9]{6}" 
+                                   placeholder="000000" 
+                                   required 
+                                   autocomplete="off">
+                            <small class="form-text text-muted">
+                                Enter the 6-digit code from your authenticator app
+                            </small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-times-circle"></i> Disable 2FA
+                            </button>
+                            <a href="@Url.Action("UserDashboard", "UserDashboard")" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #verificationCode {
+        font-size: 24px;
+        letter-spacing: 8px;
+        font-family: 'Courier New', monospace;
+    }
+</style>
+
+<script>
+    document.getElementById('verificationCode').addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+</script>

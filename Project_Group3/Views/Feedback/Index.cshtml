@@ -1,0 +1,111 @@
+﻿@model IEnumerable<PRN222_Group3.Models.Feedback>
+
+@{
+    ViewData["Title"] = "Search Feedbacks";
+
+    // Lấy giá trị filter từ ViewData để điền vào form
+    string? currentSellerName = ViewData["CurrentSellerName"] as string;
+    int? currentRating = ViewData["CurrentRating"] as int?;
+}
+
+<h1>Search Feedbacks</h1>
+<hr />
+
+<form asp-action="Index" method="get" class="mb-4">
+    <div class="row g-3">
+        <div class="col-sm-6 col-md-4">
+            <label for="sellerName" class="form-label">Seller Name</label>
+            <input type="text" name="sellerName" id="sellerName" 
+                   value="@currentSellerName" class="form-control" />
+        </div>
+        
+        <div class="col-sm-6 col-md-3">
+            <label for="rating" class="form-label">Rating</label>
+            <select name="rating" id="rating" class="form-select">
+                <option value="">All Ratings</option>
+                <option value="1">1 Star</option>
+                <option value="2">2 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="5">5 Stars</option>
+                @* @(currentRating == 2 ? "selected" : "") *@
+            </select>
+        </div>
+
+        <div class="col-sm-12 col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">Search</button>
+            <a asp-action="Index" class="btn btn-secondary">Clear</a>
+        </div>
+    </div>
+</form>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Seller</th>
+            <th>Rating</th>
+            <th>Positive Rate</th>
+            <th>Total Reviews</th>
+            <th>View User</th>
+            </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@Html.DisplayFor(modelItem => item.Seller.Username)</td>
+                    <td>@Html.DisplayFor(modelItem => item.AverageRating) sao</td>
+                    <td>@Html.DisplayFor(modelItem => item.PositiveRate)</td>
+                    <td>@Html.DisplayFor(modelItem => item.TotalReviews)</td>
+                    <td>
+                        <a asp-controller="UserDashboard" asp-action="UserDashboard"
+                           asp-route-keyword="@item.Seller.Username" class="btn btn-info btn-sm">
+                            View User
+						</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">No feedbacks found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (ViewBag.TotalPages > 1)
+{
+    <nav aria-label="Feedback pagination">
+        <ul class="pagination justify-content-center">
+            
+            @* Nút Previous *@
+            <li class="page-item @(!ViewBag.HasPreviousPage ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-pageNumber="@(ViewBag.PageNumber - 1)"
+                   asp-route-sellerName="@currentSellerName"
+                   asp-route-rating="@currentRating">
+                    Previous
+                </a>
+            </li>
+
+            <li class="page-item disabled">
+                <span class="page-link">Page @ViewBag.PageNumber of @ViewBag.TotalPages</span>
+            </li>
+            
+            @* Nút Next *@
+            <li class="page-item @(!ViewBag.HasNextPage ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-pageNumber="@(ViewBag.PageNumber + 1)"
+                   asp-route-sellerName="@currentSellerName"
+                   asp-route-rating="@currentRating">
+                    Next
+                </a>
+            </li>
+            
+        </ul>
+    </nav>
+}

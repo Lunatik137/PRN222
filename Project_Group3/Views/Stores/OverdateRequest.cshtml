@@ -1,0 +1,191 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@model List<PRN222_Group3.Models.ReturnRequest>
+@{
+
+}
+<div class="container mt-4">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Order ID</th>
+                <th scope="col">User</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Status</th>
+                <th scope="col">Created At</th>
+                <th scope="col">Images</th>
+                <th scope="col">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <th scope="row">@item.Id</th>
+                    <td>@item.OrderId</td>
+
+                    <td>
+                        @if (item.User != null)
+                        {
+                            @item.User.Username
+                        }
+                        else
+                        {
+                            <span class="text-muted">No User</span>
+                        }
+                </td>
+
+                <td>@item.Reason</td>
+
+                <td>
+                    <span class="badge
+                        @(item.Status == "Pending" ? "bg-warning text-dark" :
+                                                    item.Status == "Disputed" ? "bg-danger" :
+                                                    item.Status == "Approved" ? "bg-success" : "bg-secondary")">
+                        @item.Status
+                    </span>
+                </td>
+                <td>
+                    @item.CreatedAt?.ToString("yyyy-MM-dd")
+                </td>
+                <td>
+                @if (!string.IsNullOrEmpty(item.Images))
+                    {
+                        <img src="@item.Images"
+                                alt="Image"
+                                width="60" height="60"
+                                style="object-fit: cover; border-radius: 6px;" />
+                    }
+                    else
+                    {
+                        <span class="text-muted">No image</span>
+                    }
+                </td>
+                <td>
+                    <button class="btn btn-info"
+                                data-bs-toggle="modal"
+                                data-bs-target="#sendEmailModal"
+                                onclick="setEmail('@item.User.Email')">
+                            Email Customer
+                    </button>
+                    <button class="btn btn-warning"
+                            data-bs-toggle="modal"
+                            data-bs-target="#updateStatusModal"
+                            onclick="setOrderId(@item.OrderId, @item.Id)">
+                        Adjust
+                    </button>
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+
+</div>
+
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/chart/chart.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="lib/tempusdominus/js/moment.min.js"></script>
+    <script src="lib/tempusdominus/js/moment-timezone.min.js"></script>
+    <script src="lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="js/main.js"></script>
+
+<!-- Modal Send Email -->
+<div class="modal fade" id="sendEmailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Gửi Email thông báo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form asp-controller="Stores" asp-action="SendEmail" method="post">
+
+                <div class="modal-body">
+
+                    <!-- Email readonly -->
+                    <div class="mb-3">
+                        <label class="form-label">Email người nhận</label>
+                        <input readonly id="emailToInput" name="EmailTo" class="form-control" />
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="mb-3">
+                        <label class="form-label">Tiêu đề</label>
+                        <input class="form-control" name="Subject" required />
+                    </div>
+
+                    <!-- Body -->
+                    <div class="mb-3">
+                        <label class="form-label">Nội dung</label>
+                        <textarea class="form-control" rows="5" name="Body" required></textarea>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Gửi Email</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal Update Status -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            
+            <div class="modal-header">
+                <h5 class="modal-title">Adjust</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form asp-controller="Stores" asp-action="AdjustRequest" method="post">
+                <div class="modal-body">
+
+                    <!-- Hidden Order ID -->
+                    <input type="hidden" id="orderIdInput" name="Oid" />
+                    <input type="hidden" id="reqestIdInput" name="Rid" />
+
+                    <label class="form-label">Status:</label>
+                    <select class="form-select" name="status" required>
+                        <option value="Return">Accept</option>
+                        <option value="ReturnRejected">Reject</option>
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Adjust</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function setOrderId(id, Rid) {
+        document.getElementById("orderIdInput").value = id;
+		document.getElementById("reqestIdInput").value = Rid;
+    }
+    function setEmail(email) {
+        document.getElementById("emailToInput").value = email;
+    }
+</script>

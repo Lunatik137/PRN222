@@ -1,0 +1,154 @@
+@{
+    ViewData["Title"] = "Two-Factor Authentication";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+        <div class="col-md-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0"><i class="bi bi-shield-lock-fill"></i> Two-Factor Authentication</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-phone" style="font-size: 3rem; color: #0d6efd;"></i>
+                        <p class="mt-3">Enter the 6-digit code from your authenticator app</p>
+                    </div>
+
+                    <form asp-action="VerifyCode" method="post" id="verify2FAForm">
+                        <input type="hidden" id="useRecoveryCode" name="useRecoveryCode" value="false" />
+                        
+                        <div class="mb-4" id="normalCodeSection">
+                            <label for="code" class="form-label">Verification Code</label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="code" 
+                                   name="code" 
+                                   placeholder="000000"
+                                   maxlength="6"
+                                   pattern="\d{6}"
+                                   required
+                                   autofocus
+                                   autocomplete="off"
+                                   style="letter-spacing: 0.5em; font-size: 2rem; font-weight: bold;" />
+                            <div class="form-text text-center">The code changes every 30 seconds</div>
+                        </div>
+
+                        <div class="mb-4 d-none" id="recoveryCodeSection">
+                            <label for="recoveryCode" class="form-label">Recovery Code</label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="recoveryCode" 
+                                   placeholder="Enter 8-digit recovery code"
+                                   maxlength="8"
+                                   pattern="\d{8}"
+                                   autocomplete="off"
+                                   style="letter-spacing: 0.3em; font-size: 1.5rem; font-weight: bold;" />
+                            <div class="form-text text-center">Enter one of your saved recovery codes</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Verify
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-secondary" id="toggleRecoveryBtn" onclick="toggleRecoveryMode()">
+                                <i class="bi bi-key"></i> Use Recovery Code Instead
+                            </button>
+                            
+                            <a href="@Url.Action("Login", "Login")" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Login
+                            </a>
+                        </div>
+                    </form>
+
+                    <div class="mt-4 text-center">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> Having trouble? Make sure your device time is synchronized.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Lost your device? Contact your administrator for assistance.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let isRecoveryMode = false;
+
+        function toggleRecoveryMode() {
+            isRecoveryMode = !isRecoveryMode;
+            
+            const normalSection = document.getElementById('normalCodeSection');
+            const recoverySection = document.getElementById('recoveryCodeSection');
+            const toggleBtn = document.getElementById('toggleRecoveryBtn');
+            const useRecoveryInput = document.getElementById('useRecoveryCode');
+            const codeInput = document.getElementById('code');
+            const recoveryInput = document.getElementById('recoveryCode');
+
+            if (isRecoveryMode) {
+                normalSection.classList.add('d-none');
+                recoverySection.classList.remove('d-none');
+                toggleBtn.innerHTML = '<i class="bi bi-phone"></i> Use Authenticator Code Instead';
+                codeInput.removeAttribute('required');
+                recoveryInput.setAttribute('required', 'required');
+                recoveryInput.focus();
+                useRecoveryInput.value = 'true';
+                
+                // Update form action to handle recovery code
+                recoveryInput.addEventListener('input', function() {
+                    codeInput.value = this.value;
+                });
+            } else {
+                normalSection.classList.remove('d-none');
+                recoverySection.classList.add('d-none');
+                toggleBtn.innerHTML = '<i class="bi bi-key"></i> Use Recovery Code Instead';
+                recoveryInput.removeAttribute('required');
+                codeInput.setAttribute('required', 'required');
+                codeInput.focus();
+                useRecoveryInput.value = 'false';
+            }
+        }
+
+        // Auto-submit when 6 digits are entered (normal mode)
+        document.getElementById('code').addEventListener('input', function(e) {
+            if (!isRecoveryMode && this.value.length === 6 && /^\d{6}$/.test(this.value)) {
+                document.getElementById('verify2FAForm').submit();
+            }
+        });
+
+        // Auto-submit when 8 digits are entered (recovery mode)
+        document.getElementById('recoveryCode').addEventListener('input', function(e) {
+            if (isRecoveryMode && this.value.length === 8 && /^\d{8}$/.test(this.value)) {
+                document.getElementById('code').value = this.value;
+                document.getElementById('verify2FAForm').submit();
+            }
+        });
+
+        // Only allow numbers
+        document.getElementById('code').addEventListener('keypress', function(e) {
+            if (!/\d/.test(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        document.getElementById('recoveryCode').addEventListener('keypress', function(e) {
+            if (!/\d/.test(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        // Auto-focus on page load
+        window.addEventListener('load', function() {
+            document.getElementById('code').focus();
+        });
+    </script>
+}
