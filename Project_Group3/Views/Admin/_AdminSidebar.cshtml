@@ -9,7 +9,7 @@
 <aside class="dashboard-sidebar">
     <div class="brand">Marketplace Admin</div>
     <nav class="menu list-unstyled">
-        <a asp-controller="Admin" asp-action="Dashboard" class="menu-link @IsActive("Dashboard")">Dashboard</a>
+        <a asp-controller="AdminDashboard" asp-action="Dashboard" class="menu-link @IsActive("Dashboard")">Dashboard</a>
         <a asp-controller="Admin" asp-action="UserManagement" class="menu-link @IsActive("UserManagement")">User Management</a>
         @if (isSuperAdmin)
         {
@@ -19,7 +19,7 @@
 
         <a asp-controller="Admin" asp-action="ReviewsFeedback" class="menu-link @IsActive("ReviewsFeedback")">Reviews & Feedback</a>
         <a asp-controller="AdminDispute" asp-action="IndexDispute" class="menu-link @IsActive("IndexDispute")">Complaints / Disputes</a>
-        <a asp-controller="Admin" asp-action="Analytics" class="menu-link @IsActive("Analytics")">Analytics</a>
+        <a asp-controller="AdminAnalytics" asp-action="Analytics" class="menu-link @IsActive("Analytics")">Analytics</a>
         <a asp-controller="Admin" asp-action="SystemSettings" class="menu-link @IsActive("SystemSettings")">System Settings</a>
     </nav>
 </aside>
