@@ -9,6 +9,11 @@ public class AccountController(
     IUserRepository userRepository,
     IHubContext<AdminNotificationHub> adminNotificationHub) : Controller
 {
+    private const string PendingAdminUserIdSessionKey = "PendingAdminUserId";
+    private const string PendingAdminUsernameSessionKey = "PendingAdminUsername";
+    private const string PendingAdminRoleSessionKey = "PendingAdminRole";
+    private const string AdminTwoFactorVerifiedSessionKey = "IsAdmin2FAVerified";
+
     private static readonly HashSet<string> AdminRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         "superadmin",
@@ -66,17 +71,20 @@ public class AccountController(
                 HttpContext.Session.SetInt32("UserId", user.id);
                 HttpContext.Session.SetString("Username", user.username ?? model.Username);
                 HttpContext.Session.SetString("Role", user.role ?? string.Empty);
+                HttpContext.Session.Remove(AdminTwoFactorVerifiedSessionKey);
 
                 TempData["LoginMessage"] = $"Hello, {user.username}!";
                 return RedirectToAction("Index", "Home");
             }
 
-            HttpContext.Session.SetInt32("UserId", user.id);
-            HttpContext.Session.SetString("Username", user.username ?? model.Username);
-            HttpContext.Session.SetString("Role", user.role ?? string.Empty);
+            if (user.isTwoFactorEnabled != true || string.IsNullOrWhiteSpace(user.twoFactorSecret))
+            {
+                ModelState.AddModelError(string.Empty, "Admin account must enable 2FA before accessing Admin panel.");
+                return View(model);
+            }
 
-            TempData["LoginMessage"] = $"Hello, {user.username}!";
-            return RedirectToAction("Dashboard", "AdminDashboard");
+            SetPendingAdminTwoFactorSession(user, model.Username);
+            return RedirectToAction(nameof(VerifyAdmin2FA));
         }
         catch (TaskCanceledException)
         {
@@ -88,6 +96,61 @@ public class AccountController(
             ModelState.AddModelError(string.Empty, "An error occurred during the login process.");
             return View(model);
         }
+    }
+
+    [HttpGet]
+    public IActionResult VerifyAdmin2FA()
+    {
+        if (!HasPendingAdminTwoFactorSession())
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        return View(new AdminTwoFactorViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifyAdmin2FA(AdminTwoFactorViewModel model)
+    {
+        if (!HasPendingAdminTwoFactorSession())
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var pendingAdminUserId = HttpContext.Session.GetInt32(PendingAdminUserIdSessionKey);
+        if (pendingAdminUserId is null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        var user = await userRepository.GetByIdAsync(pendingAdminUserId.Value, CancellationToken.None);
+        if (user is null || !AdminRoles.Contains(user.role ?? string.Empty))
+        {
+            ClearPendingAdminTwoFactorSession();
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!string.Equals(user.twoFactorSecret?.Trim(), model.Code.Trim(), StringComparison.Ordinal))
+        {
+            ModelState.AddModelError(nameof(model.Code), "2FA code is not valid.");
+            return View(model);
+        }
+
+        HttpContext.Session.SetInt32("UserId", user.id);
+        HttpContext.Session.SetString("Username", user.username ?? HttpContext.Session.GetString(PendingAdminUsernameSessionKey) ?? string.Empty);
+        HttpContext.Session.SetString("Role", user.role ?? HttpContext.Session.GetString(PendingAdminRoleSessionKey) ?? string.Empty);
+        HttpContext.Session.SetString(AdminTwoFactorVerifiedSessionKey, "true");
+
+        ClearPendingAdminTwoFactorSession();
+
+        TempData["LoginMessage"] = $"Hello, {user.username}!";
+        return RedirectToAction("Dashboard", "AdminDashboard");
     }
 
     [HttpGet]
@@ -164,5 +227,27 @@ public class AccountController(
     {
         HttpContext.Session.Clear();
         return RedirectToAction("Index", "Home");
+    }
+
+    private void SetPendingAdminTwoFactorSession(User user, string usernameFallback)
+    {
+        HttpContext.Session.Remove("UserId");
+        HttpContext.Session.Remove("Username");
+        HttpContext.Session.Remove("Role");
+
+        HttpContext.Session.SetInt32(PendingAdminUserIdSessionKey, user.id);
+        HttpContext.Session.SetString(PendingAdminUsernameSessionKey, user.username ?? usernameFallback);
+        HttpContext.Session.SetString(PendingAdminRoleSessionKey, user.role ?? string.Empty);
+        HttpContext.Session.Remove(AdminTwoFactorVerifiedSessionKey);
+    }
+
+    private bool HasPendingAdminTwoFactorSession()
+        => HttpContext.Session.GetInt32(PendingAdminUserIdSessionKey) is not null;
+
+    private void ClearPendingAdminTwoFactorSession()
+    {
+        HttpContext.Session.Remove(PendingAdminUserIdSessionKey);
+        HttpContext.Session.Remove(PendingAdminUsernameSessionKey);
+        HttpContext.Session.Remove(PendingAdminRoleSessionKey);
     }
 }

@@ -1,49 +1,75 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
 
-namespace Project_Group3.Controllers
+namespace Project_Group3.Controllers;
+
+public class AdminDisputeController(IDisputeRepository repo) : Controller
 {
-    public class AdminDisputeController : Controller
+    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
-        private readonly IDisputeRepository _repo;
+        "superadmin",
+        "monitor"
+    };
 
-
-        public AdminDisputeController(IDisputeRepository repo)
+    public IActionResult IndexDispute()
+    {
+        if (!HasAdminAccess())
         {
-            _repo = repo;
-
+            return RedirectToAction("Login", "Account");
         }
 
-        public IActionResult IndexDispute()
+        var data = repo.GetAll();
+        return View("IndexDispute", data);
+    }
+
+    public IActionResult Details(int id)
+    {
+        if (!HasAdminAccess())
         {
-            var data = _repo.GetAll();
-            return View("IndexDispute",data);
+            return RedirectToAction("Login", "Account");
         }
 
-        public IActionResult Details(int id)
+        var dispute = repo.GetById(id);
+        return View(dispute);
+    }
+
+    public IActionResult Edit(int id)
+    {
+        if (!HasAdminAccess())
         {
-            var d = _repo.GetById(id);
-            return View(d);
-        }
-        public IActionResult Edit(int id)
-        {
-            var d = _repo.GetById(id);
-            return View(d);
+            return RedirectToAction("Login", "Account");
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Update(int id, string status, string resolution)
-        {
-            var dispute = _repo.GetById(id);
-            if (dispute.status == "RESOLVED")
-            {
-                return RedirectToAction("Details", new { id });
-            }
-            _repo.Update(id, status, resolution);
+        var dispute = repo.GetById(id);
+        return View(dispute);
+    }
 
+    [HttpPost]
+    public IActionResult Update(int id, string status, string resolution)
+    {
+        if (!HasAdminAccess())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var dispute = repo.GetById(id);
+        if (dispute.status == "RESOLVED")
+        {
             return RedirectToAction("Details", new { id });
         }
+
+        repo.Update(id, status, resolution);
+        return RedirectToAction("Details", new { id });
+    }
+
+    private bool HasAdminAccess()
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+
+        return userId is not null
+            && AllowedRoles.Contains(role ?? string.Empty)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
     }
 }
