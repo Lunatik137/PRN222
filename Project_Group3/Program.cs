@@ -1,4 +1,5 @@
 using Microsoft.OpenApi.Models;
+using Project_Group3.Hubs;
 
 namespace Project_Group3
 {
@@ -12,6 +13,7 @@ namespace Project_Group3
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllersWithViews();
             builder.Services.AddSession();
+            builder.Services.AddSignalR();
 
             builder.Services.AddSwaggerGen(c =>
             {
@@ -46,6 +48,7 @@ namespace Project_Group3
 
             app.MapStaticAssets();
             app.MapControllers();
+            app.MapHub<AdminNotificationHub>("/hubs/admin-notifications");
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")

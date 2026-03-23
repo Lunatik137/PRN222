@@ -26,6 +26,8 @@
                     <div class="alert alert-danger">@err</div>
                 }
 
+                <div id="realtimeRegisterNotice" class="alert alert-info d-none" role="alert"></div>
+
                 <form method="get" asp-action="UserManagement" class="user-filter card p-3 mb-3">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-5">
@@ -35,7 +37,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
                             <select class="form-select" name="status">
-                               
+
                                 <option value="" selected="@(string.IsNullOrEmpty(Model.Status))">All</option>
                                 <option value="pending" selected="@(Model.Status == "pending")">Pending</option>
                                 <option value="approved" selected="@(Model.Status == "approved")">Approved</option>
@@ -45,7 +47,7 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            
+
                             <label class="form-label">Page Size</label>
                             <select class="form-select" name="pageSize">
                                 @foreach (var size in new[] { 10, 20, 50 })
@@ -206,3 +208,36 @@
         </main>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        (() => {
+            const notice = document.getElementById("realtimeRegisterNotice");
+            if (!notice || typeof signalR === "undefined") {
+                return;
+            }
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/admin-notifications")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("UserRegistered", (username) => {
+                const safeUsername = username || "Unknown";
+                notice.textContent = `Có tài khoản mới vừa đăng ký: ${safeUsername}. Trang sẽ tự động làm mới...`;
+                notice.classList.remove("d-none");
+
+                setTimeout(() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("_rt", Date.now().toString());
+                    window.location.replace(url.toString());
+                }, 1500);
+            });
+
+            connection.start().catch((error) => {
+                console.error("Không thể kết nối realtime cho User Management:", error);
+            });
+        })();
+    </script>
+}

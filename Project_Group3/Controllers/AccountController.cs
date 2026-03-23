@@ -1,9 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Project_Group3.Hubs;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
 
 namespace Project_Group3.Controllers;
-public class AccountController(IUserRepository userRepository) : Controller
+public class AccountController(
+    IUserRepository userRepository,
+    IHubContext<AdminNotificationHub> adminNotificationHub) : Controller
 {
     private static readonly HashSet<string> AdminRoles = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -143,6 +147,12 @@ public class AccountController(IUserRepository userRepository) : Controller
             ModelState.AddModelError(string.Empty, "Unable to create account. Please try again.");
             return View(model);
         }
+
+        await adminNotificationHub.Clients.Group(AdminNotificationHub.AdminGroupName).SendAsync(
+            "UserRegistered",
+            user.username,
+            user.email,
+            user.createdAt);
 
         TempData["LoginMessage"] = "Register successful. Your account is pending admin approval.";
         return RedirectToAction(nameof(Login));
