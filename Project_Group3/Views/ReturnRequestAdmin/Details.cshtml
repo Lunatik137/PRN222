@@ -1,7 +1,7 @@
 @model Project_Group3.ViewModel.ReturnRequestAdminDetailsViewModel
 @using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "Chi tiết yêu cầu hoàn trả";
+    ViewData["Title"] = "Details of the refund request";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var username = Context.Session.GetString("Username") ?? "Admin";
 }
@@ -22,22 +22,22 @@
             <header class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                 <div>
                     <h1 class="h3 mb-1">@ViewData["Title"] #@Model.ReturnRequestId</h1>
-                    <p class="text-muted mb-0">Xem và xử lý yêu cầu hoàn trả. Signed in as <strong>@username</strong></p>
+                    <p class="text-muted mb-0">View and process refund requests. Signed in as <strong>@username</strong></p>
                 </div>
-                <a asp-action="Index" class="btn btn-outline-secondary">Quay lại danh sách</a>
+                <a asp-action="Index" class="btn btn-outline-secondary">Back to the list</a>
             </header>
 
             <div class="row g-3">
                 <div class="col-lg-8">
                     <div class="card">
-                        <div class="card-header">Nội dung yêu cầu</div>
+                        <div class="card-header">Content of the request</div>
                         <div class="card-body">
                             <dl class="row mb-0">
-                                <dt class="col-sm-4">Trạng thái hoàn trả</dt>
+                                <dt class="col-sm-4">Return status</dt>
                                 <dd class="col-sm-8"><strong>@Model.ReturnStatus</strong></dd>
-                                <dt class="col-sm-4">Ngày tạo</dt>
+                                <dt class="col-sm-4">Creation date</dt>
                                 <dd class="col-sm-8">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</dd>
-                                <dt class="col-sm-4">Lý do</dt>
+                                <dt class="col-sm-4">Reason</dt>
                                 <dd class="col-sm-8">@Model.Reason</dd>
                             </dl>
                         </div>
@@ -46,7 +46,7 @@
 
                 <div class="col-lg-4">
                     <div class="card mb-3">
-                        <div class="card-header">Đơn hàng</div>
+                        <div class="card-header">Order</div>
                         <div class="card-body">
                             <dl class="row mb-0 small">
                                 <dt class="col-sm-5">OrderId</dt>
@@ -68,17 +68,17 @@
                     @if (Model.CanProcess)
                     {
                         <div class="card">
-                            <div class="card-header">Thao tác</div>
+                            <div class="card-header">Action</div>
                             <div class="card-body">
-                                <form asp-action="Approve" method="post" class="mb-2" onsubmit="return confirm('Duyệt yêu cầu này?');">
+                                <form asp-action="Approve" method="post" class="mb-2" onsubmit="return confirm('Approve this request?');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@Model.ReturnRequestId" />
-                                    <button type="submit" class="btn btn-success w-100">Duyệt</button>
+                                    <button type="submit" class="btn btn-success w-100">Approve</button>
                                 </form>
-                                <form asp-action="Reject" method="post" onsubmit="return confirm('Từ chối yêu cầu này?');">
+                                <form asp-action="Reject" method="post" onsubmit="return confirm('Reject this request?');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@Model.ReturnRequestId" />
-                                    <button type="submit" class="btn btn-outline-danger w-100">Từ chối</button>
+                                    <button type="submit" class="btn btn-outline-danger w-100">Reject</button>
                                 </form>
                             </div>
                         </div>

@@ -1,7 +1,7 @@
 @model Project_Group3.ViewModel.ReturnRequestAdminIndexPageViewModel
 @using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "Xét duyệt yêu cầu hoàn trả";
+    ViewData["Title"] = "Return Request Approval";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var username = Context.Session.GetString("Username") ?? "Admin";
 }
@@ -14,7 +14,7 @@
             <header class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                 <div>
                     <h1 class="h3 mb-1">@ViewData["Title"]</h1>
-                    <p class="text-muted mb-0">Quản lý yêu cầu hoàn trả. Signed in as <strong>@username</strong></p>
+                    <p class="text-muted mb-0">Return request management. Signed in as <strong>@username</strong></p>
                 </div>
             </header>
 
@@ -22,9 +22,9 @@
                 <div class="card-body">
                     <form method="get" class="row g-2 align-items-end">
                         <div class="col-md-4">
-                            <label class="form-label">Trạng thái</label>
+                            <label class="form-label">Status</label>
                             <select name="status" class="form-select">
-                                <option value="">-- Tất cả --</option>
+                                <option value="">-- All --</option>
                                 <option value="Pending" selected="@(string.Equals(Model.Status, "Pending", StringComparison.OrdinalIgnoreCase))">Pending</option>
                                 <option value="Completed" selected="@(string.Equals(Model.Status, "Completed", StringComparison.OrdinalIgnoreCase))">Completed</option>
                                 <option value="Rejected" selected="@(string.Equals(Model.Status, "Rejected", StringComparison.OrdinalIgnoreCase))">Rejected</option>
@@ -40,7 +40,7 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">Lọc</button>
+                            <button type="submit" class="btn btn-primary w-100">Filter</button>
                         </div>
                     </form>
                 </div>
@@ -73,7 +73,7 @@
                         <tbody>
                             @if (!Model.Items.Any())
                             {
-                                <tr><td colspan="9" class="text-center py-3 text-muted">Không có dữ liệu</td></tr>
+                                <tr><td colspan="9" class="text-center py-3 text-muted">No data</td></tr>
                             }
                             else
                             {
@@ -89,7 +89,7 @@
                                         <td>@item.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</td>
                                         <td>@item.ReasonPreview</td>
                                         <td>
-                                            <a asp-action="Details" asp-route-id="@item.ReturnRequestId" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                                            <a asp-action="Details" asp-route-id="@item.ReturnRequestId" class="btn btn-sm btn-outline-primary">Detail</a>
                                         </td>
                                     </tr>
                                 }

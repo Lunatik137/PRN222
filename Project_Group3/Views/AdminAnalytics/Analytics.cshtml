@@ -91,7 +91,7 @@
                     <article class="card border-0 shadow-sm h-100 analytics-kpi-card">
                         <div class="card-body">
                             <p class="text-muted mb-2">Revenue</p>
-                            <h2 class="display-6 mb-0">@Model.TotalRevenue.ToString("N0") &#8363;</h2>
+                            <h2 class="display-6 mb-0">@Model.TotalRevenue.ToString("N0") $</h2>
                         </div>
                     </article>
                 </div>
@@ -126,7 +126,7 @@
                                         <th>Seller</th>
                                         <th class="text-end">Orders</th>
                                         <th class="text-end">Items</th>
-                                        <th class="text-end">Revenue (&#8363;)</th>
+                                        <th class="text-end">Revenue ($)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -136,7 +136,7 @@
                                             <td>@row.Seller</td>
                                             <td class="text-end">@row.Orders</td>
                                             <td class="text-end">@row.Items</td>
-                                            <td class="text-end">@row.Revenue.ToString("N0") &#8363;</td>
+                                            <td class="text-end">@row.Revenue.ToString("N0") $</td>
                                         </tr>
                                     }
                                     @if (!Model.TopSellers.Any())
@@ -158,7 +158,7 @@
                                     <tr>
                                         <th>Product</th>
                                         <th class="text-end">Qty</th>
-                                        <th class="text-end">Revenue (&#8363;)</th>
+                                        <th class="text-end">Revenue ($)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -167,7 +167,7 @@
                                         <tr>
                                             <td>@row.Product</td>
                                             <td class="text-end">@row.Quantity</td>
-                                            <td class="text-end">@row.Revenue.ToString("N0") &#8363;</td>
+                                            <td class="text-end">@row.Revenue.ToString("N0") $</td>
                                         </tr>
                                     }
                                     @if (!Model.TopProducts.Any())
@@ -189,7 +189,7 @@
                                     <tr>
                                         <th>Buyer</th>
                                         <th class="text-end">Orders</th>
-                                        <th class="text-end">Total spent (&#8363;)</th>
+                                        <th class="text-end">Total spent ($)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -198,7 +198,7 @@
                                         <tr>
                                             <td>@row.Buyer</td>
                                             <td class="text-end">@row.Orders</td>
-                                            <td class="text-end">@row.TotalSpent.ToString("N0") &#8363;</td>
+                                            <td class="text-end">@row.TotalSpent.ToString("N0") $</td>
                                         </tr>
                                     }
                                     @if (!Model.TopBuyers.Any())
@@ -233,3 +233,4 @@
         toggleFilterFields();
     </script>
 }
+
