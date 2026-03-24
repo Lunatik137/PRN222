@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Project_Group3</title>
+    <title>@ViewData["Title"] ebay</title>
     <script type="importmap"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,7 +25,7 @@
         <header>
             <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
                 <div class="container-fluid">
-                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Project_Group3</a>
+                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">eBay</a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                             aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
@@ -44,6 +44,9 @@
                             @if (Context.Session.GetString("Username") is { } username)
                             {
                                 <li class="nav-item d-flex align-items-center me-2 text-success">Hello!, @username</li>
+                                <li class="nav-item me-2">
+                                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Account" asp-action="ChangePassword">Change password</a>
+                                </li>
                                 <li class="nav-item">
                                     <form asp-controller="Account" asp-action="Logout" method="post">
                                         <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
@@ -77,7 +80,7 @@
     {
         <footer class="border-top footer text-muted">
             <div class="container">
-                &copy; 2030 - Project_Group3 - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                &copy; 2026 - eBay - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
             </div>
         </footer>
     }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Project_Group3.Models;
+using Project_Group3.Services;
 
 namespace Project_Group3;
 
@@ -17,9 +18,12 @@ public static class DependencyInjection
         services.AddDbContext<CloneEbayDbContext>(options => options.UseSqlServer(connectionString));
 
         services.AddRepositoriesFromAssembly(Assembly.GetExecutingAssembly());
+        services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+        services.AddSingleton<IProductReportTracker, InMemoryProductReportTracker>();
 
         return services;
     }
+    
 
     private static IServiceCollection AddRepositoriesFromAssembly(this IServiceCollection services, Assembly assembly)
     {

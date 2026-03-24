@@ -1,7 +1,15 @@
-﻿@using Microsoft.AspNetCore.Http
+﻿@model Project_Group3.Models.BuyerMarketplaceViewModel
+@using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "Clone eBay Home";
+    ViewData["Title"] = "eBay Home";
     var username = Context.Session.GetString("Username");
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var isBuyer = Model?.IsBuyer == true && string.Equals(role, "buyer", StringComparison.OrdinalIgnoreCase);
+    var canBackToDashboard = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(role, "monitor", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(role, "support", StringComparison.OrdinalIgnoreCase);
+    var dashboardController = string.Equals(role, "support", StringComparison.OrdinalIgnoreCase) ? "Admin" : "AdminDashboard";
+    var dashboardAction = string.Equals(role, "support", StringComparison.OrdinalIgnoreCase) ? "SystemSettings" : "Dashboard";
 }
 
 <div class="ebay-home">
@@ -17,7 +25,19 @@
                 }
                 else
                 {
-                    <span class="fw-semibold text-dark">@username</span>
+                    <span class="fw-semibold text-dark me-2">@username</span>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline me-2">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                    </form>
+                    @if (canBackToDashboard)
+                    {
+                        <a asp-controller="@dashboardController"
+                           asp-action="@dashboardAction"
+                           class="btn btn-outline-primary btn-sm">
+                            Back to dashboard
+                        </a>
+                    }
                 }
             </div>
             <div class="ebay-top-links">
@@ -55,6 +75,69 @@
             </div>
         </div>
     </div>
+
+
+    @if (TempData["ActionSuccess"] is string successMessage)
+    {
+        <section class="ebay-wrap pt-4">
+            <div class="alert alert-success mb-0">@successMessage</div>
+        </section>
+    }
+
+    @if (TempData["ActionError"] is string errorMessage)
+    {
+        <section class="ebay-wrap pt-4">
+            <div class="alert alert-danger mb-0">@errorMessage</div>
+        </section>
+    }
+
+    @if (isBuyer)
+    {
+        <section class="ebay-wrap py-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div>
+                    <h2 class="section-title mb-1">Marketplace products</h2>
+                    <p class="text-muted mb-0">Browse all active products and report suspicious listings.</p>
+                </div>
+                <span class="badge text-bg-dark px-3 py-2">@Model!.Products.Count products</span>
+            </div>
+
+            @if (!Model!.Products.Any())
+            {
+                <div class="alert alert-info">There are currently no active products to display.</div>
+            }
+            else
+            {
+                <div class="buyer-product-grid">
+                    @foreach (var product in Model.Products)
+                    {
+                        var imageUrl = string.IsNullOrWhiteSpace(product.ImageUrl) ? "https://via.placeholder.com/640x360?text=No+Image" : product.ImageUrl;
+                        <article class="buyer-product-card">
+                            <img src="@imageUrl" alt="@product.Title" class="buyer-product-image" loading="lazy" />
+                            <div class="buyer-product-body">
+                                <div class="d-flex justify-content-between gap-2">
+                                    <h3 class="buyer-product-title">@product.Title</h3>
+                                    <strong class="buyer-product-price">@(product.Price?.ToString("C") ?? "N/A")</strong>
+                                </div>
+                                <p class="buyer-product-meta mb-2">
+                                    Category: <strong>@(product.CategoryName ?? "Unknown")</strong> · Seller: <strong>@(product.SellerName ?? "Unknown")</strong>
+                                </p>
+                                <p class="buyer-product-description">@(string.IsNullOrWhiteSpace(product.Description) ? "No description available." : product.Description)</p>
+
+                                <form asp-action="ReportProduct" method="post" class="buyer-report-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ProductId" value="@product.Id" />
+                                    <label class="form-label fw-semibold" for="reason-@product.Id">Report reason</label>
+                                    <textarea id="reason-@product.Id" name="Reason" class="form-control" rows="2" minlength="5" maxlength="500" required placeholder="Example: wrong product info, suspicious listing, counterfeit..."></textarea>
+                                    <button type="submit" class="btn btn-outline-danger btn-sm mt-2">Report product</button>
+                                </form>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
 
     <section class="hero-banner">
         <div class="ebay-wrap hero-inner">

@@ -8,10 +8,6 @@
     <div class="col-md-5">
         <h2 class="mb-4">Login</h2>
 
-        @if (TempData["LoginMessage"] is string loginMessage)
-        {
-            <div class="alert alert-success">@loginMessage</div>
-        }
 
         <form asp-action="Login" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>

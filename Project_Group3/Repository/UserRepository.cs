@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Services;
 
 namespace Project_Group3.Repository;
 
-public sealed class UserRepository(CloneEbayDbContext dbContext) : IUserRepository
+public sealed class UserRepository(CloneEbayDbContext dbContext, IPasswordHasherService passwordHasherService) : IUserRepository
 {
     public Task<List<User>> GetUsersAsync(CancellationToken cancellationToken = default)
         => dbContext.Users.ToListAsync(cancellationToken);
@@ -12,10 +13,31 @@ public sealed class UserRepository(CloneEbayDbContext dbContext) : IUserReposito
     public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         => dbContext.Users.FirstOrDefaultAsync(x => x.id == id, cancellationToken);
 
-    public Task<User?> GetByCredentialsAsync(string username, string password, CancellationToken cancellationToken = default)
-        => dbContext.Users.FirstOrDefaultAsync(
-            u => (u.username == username || u.email == username) && u.password == password,
-            cancellationToken);
+    public async Task<User?> GetByCredentialsAsync(string username, string password, CancellationToken cancellationToken = default)
+    {
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(u => u.username == username || u.email == username, cancellationToken);
+
+        if (user?.password is null)
+        {
+            return null;
+        }
+
+        var isValidPassword = passwordHasherService.VerifyPassword(user.password, password);
+        if (!isValidPassword)
+        {
+            return null;
+        }
+
+        // Auto-upgrade old plain-text passwords to hashed format after successful login.
+        if (!passwordHasherService.IsPasswordHashed(user.password))
+        {
+            user.password = passwordHasherService.HashPassword(password);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return user;
+    }
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         => dbContext.Users.FirstOrDefaultAsync(u => u.email == email, cancellationToken);

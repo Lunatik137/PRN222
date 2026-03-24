@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
-
+using Project_Group3.Services;
 namespace Project_Group3.Controllers
 {
     [ApiController]
@@ -9,10 +9,12 @@ namespace Project_Group3.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
+        private readonly IPasswordHasherService _passwordHasherService;
 
-        public UserController(IUserRepository userRepository)
+        public UserController(IUserRepository userRepository, IPasswordHasherService passwordHasherService)
         {
             _userRepository = userRepository;
+            _passwordHasherService = passwordHasherService;
         }
 
         [HttpGet("{id:int}")]
@@ -108,7 +110,34 @@ namespace Project_Group3.Controllers
 
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] User user, CancellationToken cancellationToken)
-            => await _userRepository.CreateUserAsync(user, cancellationToken) ? Ok() : BadRequest();
+        {
+            if (!string.IsNullOrWhiteSpace(user.password))
+            {
+                user.password = _passwordHasherService.HashPassword(user.password);
+            }
+
+            return await _userRepository.CreateUserAsync(user, cancellationToken) ? Ok() : BadRequest();
+        }
+
+        public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
+        [HttpPost("change-password/{id:int}")]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+        {
+            var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+            if (user?.password is null)
+            {
+                return NotFound();
+            }
+
+            if (!_passwordHasherService.VerifyPassword(user.password, request.CurrentPassword))
+            {
+                return Unauthorized();
+            }
+
+            user.password = _passwordHasherService.HashPassword(request.NewPassword);
+            return await _userRepository.UpdateUserAsync(user, cancellationToken) ? NoContent() : BadRequest();
+        }
 
         [HttpPut("update")]
         public async Task<IActionResult> Update([FromBody] User user, CancellationToken cancellationToken)

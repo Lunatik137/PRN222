@@ -3,13 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Services;
 
 namespace Project_Group3.Controllers;
 
 public class AdminController(
     IUserRepository userRepository,
     CloneEbayDbContext dbContext,
-    ILogger<AdminController> logger) : Controller
+    ILogger<AdminController> logger,
+    IPasswordHasherService passwordHasherService,
+    IProductReportTracker productReportTracker) : Controller
 {
     private const string ProductStatusActive = "active";
     private const string ProductStatusReported = "reported";
@@ -154,17 +157,9 @@ public class AdminController(
         var normalizedStatus = NormalizeProductStatus(filter.Status);
         var keyword = string.IsNullOrWhiteSpace(filter.Keyword) ? null : filter.Keyword.Trim();
         var productsQuery = dbContext.Products
-            .Include(p => p.seller)
-            .AsQueryable();
-
-        productsQuery = normalizedStatus switch
-        {
-            ProductStatusActive => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusActive),
-            ProductStatusReported => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusReported),
-            ProductStatusHidden => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusHidden),
-            ProductStatusDeleted => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusDeleted),
-            _ => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusReported)
-        };
+             .Include(p => p.seller)
+             .Where(p => p.status != null)
+             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -177,14 +172,31 @@ public class AdminController(
         var products = await productsQuery
            .Include(p => p.Reviews)
            .OrderByDescending(p => p.id)
-           .Take(100)
+           .Take(300)
            .ToListAsync(cancellationToken);
 
+        foreach (var product in products)
+        {
+            var combinedReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id);
+            if (combinedReportCount > 0
+                && string.Equals(product.status, ProductStatusActive, StringComparison.OrdinalIgnoreCase))
+            {
+                product.status = ProductStatusReported;
+            }
+        }
+
+        if (dbContext.ChangeTracker.HasChanges())
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         var moderationItems = products
+            .Where(product => NormalizeProductStatus(product.status) == normalizedStatus)
             .Select(product => new ProductModerationItemViewModel
             {
                 Product = product,
-                ReportCount = GetReportCount(product)
+                ReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id),
+                ReportReasons = productReportTracker.GetReasons(product.id)
             })
             .ToList();
 
@@ -268,19 +280,16 @@ public class AdminController(
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
-        if (!CanModerateProduct(product))
+        if (!CanHideProduct(product))
         {
-            TempData["ActionError"] = $"Product #{product.id} must be in reported status before hide/delete.";
+            TempData["ActionError"] = $"Product #{product.id} must be in reported status before hide.";
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
         product.status = ProductStatusHidden;
 
         var isAutoLocked = ApplySellerRiskPolicy(product.seller, RiskScorePerHidden, $"Hidden product #{product.id}: {input.Reason.Trim()}");
-        if (input.LockSeller && product.seller is not null && !product.seller.isLocked)
-        {
-            LockSeller(product.seller, $"Locked due to product moderation: {input.Reason.Trim()}");
-        }
+
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -322,19 +331,16 @@ public class AdminController(
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
-        if (!CanModerateProduct(product))
+        if (!CanDeleteProduct(product))
         {
-            TempData["ActionError"] = $"Product #{product.id} must be in reported status before hide/delete.";
+            TempData["ActionError"] = $"Product #{product.id} must be in reported or hidden status before delete.";
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
         product.status = ProductStatusDeleted;
         var isAutoLocked = ApplySellerRiskPolicy(product.seller, RiskScorePerDeleted, $"Deleted product #{product.id}: {input.Reason.Trim()}");
 
-        if (input.LockSeller && product.seller is not null && !product.seller.isLocked)
-        {
-            LockSeller(product.seller, $"Locked due to severe product violation: {input.Reason.Trim()}");
-        }
+
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -348,6 +354,45 @@ public class AdminController(
                        Target = product.title ?? $"Product #{product.id}",
                        Details = input.Reason.Trim()
                    });
+
+        return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ActivateProduct(ActivateProductInput input, CancellationToken cancellationToken)
+    {
+        if (!HasSuperAdminAccess())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var product = await dbContext.Products
+            .FirstOrDefaultAsync(p => p.id == input.ProductId, cancellationToken);
+        if (product is null)
+        {
+            TempData["ActionError"] = $"Product #{input.ProductId} not found.";
+            return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
+        }
+
+        if (!string.Equals(product.status, ProductStatusHidden, StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["ActionError"] = $"Product #{product.id} must be in hidden status before activate.";
+            return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
+        }
+
+        product.status = ProductStatusActive;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        TempData["ActionSuccess"] = $"Product #{product.id} has been activated.";
+        AppendProductModerationLog(new AdminActionLogItem
+        {
+            AtUtc = DateTime.UtcNow,
+            Action = "Activate Product",
+            Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
+            Target = product.title ?? $"Product #{product.id}",
+            Details = "Activated from hidden status."
+        });
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -482,7 +527,8 @@ public class AdminController(
                 return View(nameof(SystemSettings), model);
             }
 
-            if (!string.Equals(user.password, model.CurrentPassword, StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(user.password)
+                || !passwordHasherService.VerifyPassword(user.password, model.CurrentPassword))
             {
                 TempData["ActionError"] = "Current password is incorrect.";
                 model.Email = user.email;
@@ -667,8 +713,12 @@ public class AdminController(
     private static int GetReportCount(Product product)
         => product.Reviews.Count(r => (r.rating ?? 0) <= 2);
 
-    private static bool CanModerateProduct(Product product)
-        => string.Equals(product.status, ProductStatusReported, StringComparison.OrdinalIgnoreCase);
+    private static bool CanHideProduct(Product product)
+         => string.Equals(product.status, ProductStatusReported, StringComparison.OrdinalIgnoreCase);
+
+    private static bool CanDeleteProduct(Product product)
+        => string.Equals(product.status, ProductStatusReported, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(product.status, ProductStatusHidden, StringComparison.OrdinalIgnoreCase);
 
     private static void LockSeller(User seller, string reason)
     {
