@@ -15,7 +15,7 @@ namespace Project_Group3
 
             builder.Services.AddSignalR();
 
-            builder.Services.AddSession();
+            builder.Services.AddSession();  
             builder.Services.AddSignalR();
 
             builder.Services.AddSwaggerGen(c =>
