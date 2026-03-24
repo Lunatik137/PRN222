@@ -43,7 +43,7 @@
                         <ul class="navbar-nav">
                             @if (Context.Session.GetString("Username") is { } username)
                             {
-                                <li class="nav-item d-flex align-items-center me-2 text-success">Hello!, @username</li>
+                                <li class="nav-item d-flex align-items-center me-2 text-success">Hello, @username</li>
                                 <li class="nav-item me-2">
                                     <a class="btn btn-outline-secondary btn-sm" asp-controller="Account" asp-action="ChangePassword">Change password</a>
                                 </li>
