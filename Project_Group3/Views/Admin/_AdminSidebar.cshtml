@@ -1,7 +1,14 @@
 @using Microsoft.AspNetCore.Http
 @{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
-    string IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+    string IsActive(string controller, string? action = null)
+    {
+        var isControllerMatch = string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase);
+        var isActionMatch = action is null || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+        return isControllerMatch && isActionMatch ? "active" : string.Empty;
+    }
+
     var role = Context.Session.GetString("Role") ?? string.Empty;
     var isSuperAdmin = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
 }
@@ -9,19 +16,18 @@
 <aside class="dashboard-sidebar">
     <div class="brand">Marketplace Admin</div>
     <nav class="menu list-unstyled">
-        <a asp-controller="AdminDashboard" asp-action="Dashboard" class="menu-link @IsActive("Dashboard")">Dashboard</a>
-        <a asp-controller="Admin" asp-action="UserManagement" class="menu-link @IsActive("UserManagement")">User Management</a>
+        <a asp-controller="AdminDashboard" asp-action="Dashboard" class="menu-link @IsActive("AdminDashboard", "Dashboard")">Dashboard</a>
+        <a asp-controller="Admin" asp-action="UserManagement" class="menu-link @IsActive("Admin", "UserManagement")">User Management</a>
         @if (isSuperAdmin)
         {
-            <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("ProductModeration")">Product Moderation</a>
+            <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("Admin", "ProductModeration")">Product Moderation</a>
         }
-        <a asp-controller="AdminOrder" asp-action="Index" class="menu-link @IsActive("Index")">Order Management</a>
-        <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="menu-link">Return Request Approval</a>
-        <a asp-controller="Email" asp-action="Send" class="menu-link">System Email Notification</a>
-
-        <a asp-controller="AdminReviewFeedback" asp-action="ReviewsFeedback" class="menu-link @IsActive("ReviewsFeedback")">Reviews & Feedback</a>
-        <a asp-controller="AdminDispute" asp-action="IndexDispute" class="menu-link @IsActive("IndexDispute")">Complaints / Disputes</a>
-        <a asp-controller="AdminAnalytics" asp-action="Analytics" class="menu-link @IsActive("Analytics")">Analytics</a>
-        <a asp-controller="Admin" asp-action="SystemSettings" class="menu-link @IsActive("SystemSettings")">System Settings</a>
+        <a asp-controller="AdminOrder" asp-action="Index" class="menu-link @IsActive("AdminOrder")">Order Management</a>
+        <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="menu-link @IsActive("ReturnRequestAdmin")">Return Request Approval</a>
+        <a asp-controller="Email" asp-action="Send" class="menu-link @IsActive("Email")">System Email Notification</a>
+        <a asp-controller="AdminReviewFeedback" asp-action="ReviewsFeedback" class="menu-link @IsActive("AdminReviewFeedback", "ReviewsFeedback")">Reviews & Feedback</a>
+        <a asp-controller="AdminDispute" asp-action="IndexDispute" class="menu-link @IsActive("AdminDispute")">Complaints / Disputes</a>
+        <a asp-controller="AdminAnalytics" asp-action="Analytics" class="menu-link @IsActive("AdminAnalytics", "Analytics")">Analytics</a>
+        <a asp-controller="Admin" asp-action="SystemSettings" class="menu-link @IsActive("Admin", "SystemSettings")">System Settings</a>
     </nav>
 </aside>
