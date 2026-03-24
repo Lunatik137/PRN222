@@ -1,11 +1,18 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using Project_Group3.Hubs;
 using Project_Group3.Models;
+using Project_Group3.Services;
 
 namespace Project_Group3.Controllers
 {
-    public class HomeController(CloneEbayDbContext dbContext, ILogger<HomeController> logger) : Controller
+    public class HomeController(
+           CloneEbayDbContext dbContext,
+           ILogger<HomeController> logger,
+           IHubContext<AdminNotificationHub> adminNotificationHub,
+           IProductReportTracker productReportTracker) : Controller
     {
         private const string BuyerRole = "buyer";
         private const string ProductStatusActive = "active";
@@ -70,10 +77,23 @@ namespace Project_Group3.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var reportReason = input.Reason.Trim();
+            var buyerName = HttpContext.Session.GetString("Username") ?? "Buyer";
+            productReportTracker.AddReport(product.id, reportReason, buyerName, DateTime.UtcNow);
+
             product.status = ProductStatusReported;
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            TempData["ActionSuccess"] = $"Product #{product.id} has been moved to '{ProductStatusReported}' with reason: {input.Reason.Trim()}";
+            await adminNotificationHub.Clients.Group(AdminNotificationHub.AdminGroupName).SendAsync(
+                "ProductReported",
+                product.id,
+                product.title ?? $"Product #{product.id}",
+                reportReason,
+                buyerName,
+                DateTime.UtcNow,
+                cancellationToken);
+
+            TempData["ActionSuccess"] = $"Product #{product.id} has been moved to '{ProductStatusReported}' with reason: {reportReason}";
             return RedirectToAction(nameof(Index));
         }
 

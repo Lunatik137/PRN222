@@ -19,6 +19,7 @@ public static class DependencyInjection
 
         services.AddRepositoriesFromAssembly(Assembly.GetExecutingAssembly());
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+        services.AddSingleton<IProductReportTracker, InMemoryProductReportTracker>();
 
         return services;
     }

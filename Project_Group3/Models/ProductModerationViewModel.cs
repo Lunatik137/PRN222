@@ -19,6 +19,8 @@ public sealed class ProductModerationItemViewModel
     public required Product Product { get; init; }
 
     public int ReportCount { get; init; }
+
+    public IReadOnlyList<string> ReportReasons { get; init; } = [];
 }
 
 public sealed class ProductModerationFilterInput
@@ -41,7 +43,6 @@ public sealed class ModerateProductInput
 
     public string? Keyword { get; init; }
 
-    public bool LockSeller { get; init; }
 }
 
 public sealed class ReportProductInput

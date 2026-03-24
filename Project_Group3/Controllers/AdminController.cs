@@ -11,7 +11,8 @@ public class AdminController(
     IUserRepository userRepository,
     CloneEbayDbContext dbContext,
     ILogger<AdminController> logger,
-    IPasswordHasherService passwordHasherService) : Controller
+    IPasswordHasherService passwordHasherService,
+    IProductReportTracker productReportTracker) : Controller
 {
     private const string ProductStatusActive = "active";
     private const string ProductStatusReported = "reported";
@@ -156,17 +157,9 @@ public class AdminController(
         var normalizedStatus = NormalizeProductStatus(filter.Status);
         var keyword = string.IsNullOrWhiteSpace(filter.Keyword) ? null : filter.Keyword.Trim();
         var productsQuery = dbContext.Products
-            .Include(p => p.seller)
-            .AsQueryable();
-
-        productsQuery = normalizedStatus switch
-        {
-            ProductStatusActive => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusActive),
-            ProductStatusReported => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusReported),
-            ProductStatusHidden => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusHidden),
-            ProductStatusDeleted => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusDeleted),
-            _ => productsQuery.Where(p => p.status != null && p.status.ToLower() == ProductStatusReported)
-        };
+             .Include(p => p.seller)
+             .Where(p => p.status != null)
+             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -179,14 +172,31 @@ public class AdminController(
         var products = await productsQuery
            .Include(p => p.Reviews)
            .OrderByDescending(p => p.id)
-           .Take(100)
+           .Take(300)
            .ToListAsync(cancellationToken);
 
+        foreach (var product in products)
+        {
+            var combinedReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id);
+            if (combinedReportCount > 0
+                && string.Equals(product.status, ProductStatusActive, StringComparison.OrdinalIgnoreCase))
+            {
+                product.status = ProductStatusReported;
+            }
+        }
+
+        if (dbContext.ChangeTracker.HasChanges())
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         var moderationItems = products
+            .Where(product => NormalizeProductStatus(product.status) == normalizedStatus)
             .Select(product => new ProductModerationItemViewModel
             {
                 Product = product,
-                ReportCount = GetReportCount(product)
+                ReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id),
+                ReportReasons = productReportTracker.GetReasons(product.id)
             })
             .ToList();
 
@@ -279,10 +289,7 @@ public class AdminController(
         product.status = ProductStatusHidden;
 
         var isAutoLocked = ApplySellerRiskPolicy(product.seller, RiskScorePerHidden, $"Hidden product #{product.id}: {input.Reason.Trim()}");
-        if (input.LockSeller && product.seller is not null && !product.seller.isLocked)
-        {
-            LockSeller(product.seller, $"Locked due to product moderation: {input.Reason.Trim()}");
-        }
+
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -333,10 +340,7 @@ public class AdminController(
         product.status = ProductStatusDeleted;
         var isAutoLocked = ApplySellerRiskPolicy(product.seller, RiskScorePerDeleted, $"Deleted product #{product.id}: {input.Reason.Trim()}");
 
-        if (input.LockSeller && product.seller is not null && !product.seller.isLocked)
-        {
-            LockSeller(product.seller, $"Locked due to severe product violation: {input.Reason.Trim()}");
-        }
+
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
