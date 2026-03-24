@@ -83,6 +83,8 @@ namespace Project_Group3.Controllers
             productReportTracker.AddReport(product.id, reportReason, buyerName, DateTime.UtcNow);
 
             product.status = ProductStatusReported;
+            product.reportnumber = (product.reportnumber ?? 0) + 1;
+            product.reason = AppendReportReason(product.reason, reportReason, buyerName);
             await dbContext.SaveChangesAsync(cancellationToken);
 
             await adminNotificationHub.Clients.Group(AdminNotificationHub.AdminGroupName).SendAsync(
@@ -107,6 +109,14 @@ namespace Project_Group3.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private static string AppendReportReason(string? existingReasons, string newReason, string reporter)
+        {
+            var line = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] {reporter}: {newReason}";
+            return string.IsNullOrWhiteSpace(existingReasons)
+                ? line
+                : $"{existingReasons}{Environment.NewLine}{line}";
         }
     }
 }

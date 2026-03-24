@@ -266,6 +266,7 @@ public partial class CloneEbayDbContext : DbContext
             entity.Property(e => e.description).UseCollation("SQL_Latin1_General_CP1_CI_AS");
             entity.Property(e => e.images).UseCollation("SQL_Latin1_General_CP1_CI_AS");
             entity.Property(e => e.price).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.reason).UseCollation("SQL_Latin1_General_CP1_CI_AS");
             entity.Property(e => e.status)
                 .HasMaxLength(100)
                 .UseCollation("SQL_Latin1_General_CP1_CI_AS");

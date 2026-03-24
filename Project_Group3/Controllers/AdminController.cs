@@ -192,11 +192,11 @@ public class AdminController(
 
         var moderationItems = products
             .Where(product => NormalizeProductStatus(product.status) == normalizedStatus)
-            .Select(product => new ProductModerationItemViewModel
+          .Select(product => new ProductModerationItemViewModel
             {
                 Product = product,
                 ReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id),
-                ReportReasons = productReportTracker.GetReasons(product.id)
+                ReportReasons = GetReportReasons(product).Concat(productReportTracker.GetReasons(product.id)).ToList()
             })
             .ToList();
 
@@ -711,7 +711,20 @@ public class AdminController(
     }
 
     private static int GetReportCount(Product product)
-        => product.Reviews.Count(r => (r.rating ?? 0) <= 2);
+         => Math.Max(product.reportnumber ?? 0, product.Reviews.Count(r => (r.rating ?? 0) <= 2));
+
+    private static IReadOnlyList<string> GetReportReasons(Product product)
+    {
+        if (string.IsNullOrWhiteSpace(product.reason))
+        {
+            return [];
+        }
+
+        return product.reason
+            .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .ToList();
+    }
 
     private static bool CanHideProduct(Product product)
          => string.Equals(product.status, ProductStatusReported, StringComparison.OrdinalIgnoreCase);
