@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @{
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
     string IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
@@ -16,8 +16,10 @@
             <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("ProductModeration")">Product Moderation</a>
         }
         <a asp-controller="AdminOrder" asp-action="Index" class="menu-link @IsActive("Index")">Order Management</a>
+        <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="menu-link">Return Request Approval</a>
+        <a asp-controller="Email" asp-action="Send" class="menu-link">System Email Notification</a>
 
-        <a asp-controller="Admin" asp-action="ReviewsFeedback" class="menu-link @IsActive("ReviewsFeedback")">Reviews & Feedback</a>
+        <a asp-controller="AdminReviewFeedback" asp-action="ReviewsFeedback" class="menu-link @IsActive("ReviewsFeedback")">Reviews & Feedback</a>
         <a asp-controller="AdminDispute" asp-action="IndexDispute" class="menu-link @IsActive("IndexDispute")">Complaints / Disputes</a>
         <a asp-controller="AdminAnalytics" asp-action="Analytics" class="menu-link @IsActive("Analytics")">Analytics</a>
         <a asp-controller="Admin" asp-action="SystemSettings" class="menu-link @IsActive("SystemSettings")">System Settings</a>
