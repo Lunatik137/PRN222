@@ -1,10 +1,29 @@
 @model Project_Group3.ViewModel.DashboardViewModel
 @using Microsoft.AspNetCore.Http
+@using System.Globalization
 @{
     ViewData["Title"] = "Admin Dashboard";
     var username = Context.Session.GetString("Username") ?? "Admin";
     var role = Context.Session.GetString("Role") ?? string.Empty;
     var isSuperAdmin = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
+
+    var ordersMax = Math.Max(1, Model.OrdersTrendSeries.DefaultIfEmpty(0).Max());
+    var usersMax = Math.Max(1, Model.NewUsersSeries.DefaultIfEmpty(0).Max());
+
+    var donutPalette = new[] { "#5b44d6", "#8d7bff", "#b4a7ff", "#ddd6ff" };
+    var donutStops = new List<string>();
+    decimal donutCursor = 0m;
+    for (var i = 0; i < Model.CategoryDistribution.Count; i++)
+    {
+        var item = Model.CategoryDistribution[i];
+        var start = donutCursor;
+        donutCursor += item.Percentage;
+        donutStops.Add($"{donutPalette[i % donutPalette.Length]} {start.ToString("0.#", CultureInfo.InvariantCulture)}% {donutCursor.ToString("0.#", CultureInfo.InvariantCulture)}%");
+    }
+    if (donutStops.Count == 0)
+    {
+        donutStops.Add("#ddd6ff 0% 100%");
+    }
 }
 <div id="notificationBox"
      style="position: fixed; top:20px; right:20px; z-index:9999;"></div>
@@ -16,7 +35,7 @@
             <header class="hub-header mb-4">
                 <div>
                     <h1 class="hub-title mb-1">Admin Dashboard</h1>
-                    <p class="hub-subtitle mb-0">Overview of key system statistics</p>
+                    <p class="hub-subtitle mb-0">Overview of live system statistics</p>
                 </div>
                 <div class="hub-header-actions">
                     <button type="button" class="btn btn-outline-hub btn-sm" disabled>Export Report (Coming soon)</button>
@@ -37,7 +56,7 @@
                                 </span>
                             </div>
                             <h2 class="hub-kpi-value mb-0">@Model.TotalUsers.ToString("N0")</h2>
-                            <small class="hub-kpi-note">Real-time DB metric</small>
+                            <small class="hub-kpi-note">New today: @Model.NewUsersToday.ToString("N0")</small>
                         </div>
                     </article>
                 </div>
@@ -54,7 +73,7 @@
                                 </span>
                             </div>
                             <h2 class="hub-kpi-value mb-0">@Model.TotalProducts.ToString("N0")</h2>
-                            <small class="hub-kpi-note">Real-time DB metric</small>
+                            <small class="hub-kpi-note">Total revenue: @Model.TotalRevenue.ToString("N2")</small>
                         </div>
                     </article>
                 </div>
@@ -71,7 +90,7 @@
                                 </span>
                             </div>
                             <h2 class="hub-kpi-value mb-0">@Model.TotalOrders.ToString("N0")</h2>
-                            <small class="hub-kpi-note">Real-time DB metric</small>
+                            <small class="hub-kpi-note">Orders today: @Model.OrdersToday.ToString("N0")</small>
                         </div>
                     </article>
                 </div>
@@ -82,14 +101,22 @@
                     <article class="card hub-panel h-100">
                         <div class="card-body">
                             <div class="hub-panel-head">
-                                <h3 class="h5 mb-0">Orders Trend</h3>
-                                <span class="badge hub-badge">Demo chart</span>
+                                <h3 class="h5 mb-0">Orders Trend (Last 7 Days)</h3>
+                                <span class="badge hub-badge">Live</span>
                             </div>
-                            <p class="hub-panel-note">Placeholder visual until analytics data wiring is implemented.</p>
-                            <div class="hub-line-chart" aria-hidden="true">
-                                <svg viewBox="0 0 400 170" preserveAspectRatio="none">
-                                    <polyline points="10,140 60,120 110,128 160,96 210,100 260,72 310,84 360,46" />
-                                </svg>
+                            <div class="hub-trend-list mt-3">
+                                @for (var i = 0; i < Model.OrdersTrendSeries.Count; i++)
+                                {
+                                    var value = Model.OrdersTrendSeries[i];
+                                    var width = (int)Math.Round((value * 100d) / ordersMax);
+                                    <div class="hub-trend-item">
+                                        <span class="trend-label">@Model.OrdersTrendLabels[i]</span>
+                                        <div class="trend-bar-wrap">
+                                            <span class="trend-bar" style="width:@Math.Max(width, value > 0 ? 8 : 0)%"></span>
+                                        </div>
+                                        <strong class="trend-value">@value</strong>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </article>
@@ -99,17 +126,22 @@
                     <article class="card hub-panel h-100">
                         <div class="card-body">
                             <div class="hub-panel-head">
-                                <h3 class="h5 mb-0">New Users Overview</h3>
-                                <span class="badge hub-badge">Demo chart</span>
+                                <h3 class="h5 mb-0">New Users (Last 6 Months)</h3>
+                                <span class="badge hub-badge">Live</span>
                             </div>
-                            <p class="hub-panel-note">Placeholder bars for upcoming user-growth analytics.</p>
-                            <div class="hub-bar-chart" aria-hidden="true">
-                                <span style="height:42%"></span>
-                                <span style="height:58%"></span>
-                                <span style="height:52%"></span>
-                                <span style="height:70%"></span>
-                                <span style="height:66%"></span>
-                                <span style="height:82%"></span>
+                            <div class="hub-bar-chart mt-3" aria-hidden="true">
+                                @for (var i = 0; i < Model.NewUsersSeries.Count; i++)
+                                {
+                                    var value = Model.NewUsersSeries[i];
+                                    var height = (int)Math.Round((value * 100d) / usersMax);
+                                    <span style="height:@Math.Max(height, value > 0 ? 8 : 0)%" title="@Model.NewUsersLabels[i]: @value"></span>
+                                }
+                            </div>
+                            <div class="hub-axis-labels">
+                                @for (var i = 0; i < Model.NewUsersLabels.Count; i++)
+                                {
+                                    <small>@Model.NewUsersLabels[i]</small>
+                                }
                             </div>
                         </div>
                     </article>
@@ -120,16 +152,20 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">Category Distribution</h3>
-                                <span class="badge hub-badge">Demo chart</span>
+                                <span class="badge hub-badge">Live</span>
                             </div>
-                            <p class="hub-panel-note">Sample breakdown for layout preview.</p>
                             <div class="hub-donut-wrap">
-                                <div class="hub-donut" aria-hidden="true"></div>
+                                <div class="hub-donut" aria-hidden="true" style="background: conic-gradient(@string.Join(", ", donutStops));"></div>
                                 <ul class="hub-legend list-unstyled mb-0">
-                                    <li><i class="dot dot-1"></i> Electronics 38%</li>
-                                    <li><i class="dot dot-2"></i> Fashion 27%</li>
-                                    <li><i class="dot dot-3"></i> Home 21%</li>
-                                    <li><i class="dot dot-4"></i> Other 14%</li>
+                                    @for (var i = 0; i < Model.CategoryDistribution.Count; i++)
+                                    {
+                                        var item = Model.CategoryDistribution[i];
+                                        <li><i class="dot" style="background:@donutPalette[i % donutPalette.Length]"></i> @item.Name @item.Percentage.ToString("0.#")% (@item.Count)</li>
+                                    }
+                                    @if (Model.CategoryDistribution.Count == 0)
+                                    {
+                                        <li>No product category data yet.</li>
+                                    }
                                 </ul>
                             </div>
                         </div>
@@ -141,29 +177,25 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">Recent Activities</h3>
-                                <span class="badge hub-badge">Demo data</span>
+                                <span class="badge hub-badge">Live</span>
                             </div>
                             <ul class="hub-list list-unstyled mb-0 mt-2">
-                                <li>
-                                    <span class="bullet"></span>
-                                    New seller account approved
-                                    <small>5 mins ago</small>
-                                </li>
-                                <li>
-                                    <span class="bullet"></span>
-                                    Product report submitted
-                                    <small>22 mins ago</small>
-                                </li>
-                                <li>
-                                    <span class="bullet"></span>
-                                    Order status manually updated
-                                    <small>1 hour ago</small>
-                                </li>
-                                <li>
-                                    <span class="bullet"></span>
-                                    Refund request opened
-                                    <small>2 hours ago</small>
-                                </li>
+                                @foreach (var item in Model.RecentActivities)
+                                {
+                                    <li>
+                                        <span class="bullet"></span>
+                                        @item.Title
+                                        <small>@item.TimeLabel</small>
+                                    </li>
+                                }
+                                @if (!Model.RecentActivities.Any())
+                                {
+                                    <li>
+                                        <span class="bullet"></span>
+                                        No recent activity
+                                        <small>-</small>
+                                    </li>
+                                }
                             </ul>
                         </div>
                     </article>
@@ -174,7 +206,7 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">Admin Alerts</h3>
-                                <span class="badge hub-badge">Demo data</span>
+                                <span class="badge hub-badge">Live</span>
                             </div>
                             <div class="table-responsive mt-2">
                                 <table class="table table-sm align-middle mb-0 hub-alert-table">
@@ -185,18 +217,26 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>18 products flagged today</td>
-                                            <td class="text-end"><span class="pill pill-warn">Warning</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Unusual login activity detected</td>
-                                            <td class="text-end"><span class="pill pill-danger">High</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Payment queue delay > 5 mins</td>
-                                            <td class="text-end"><span class="pill pill-warn">Warning</span></td>
-                                        </tr>
+                                        @foreach (var alert in Model.Alerts)
+                                        {
+                                            var levelClass = string.Equals(alert.Level, "High", StringComparison.OrdinalIgnoreCase)
+                                                ? "pill pill-danger"
+                                                : string.Equals(alert.Level, "Warning", StringComparison.OrdinalIgnoreCase)
+                                                    ? "pill pill-warn"
+                                                    : "pill pill-info";
+
+                                            <tr>
+                                                <td>@alert.Message</td>
+                                                <td class="text-end"><span class="@levelClass">@alert.Level</span></td>
+                                            </tr>
+                                        }
+                                        @if (!Model.Alerts.Any())
+                                        {
+                                            <tr>
+                                                <td>No alerts</td>
+                                                <td class="text-end"><span class="pill pill-info">Info</span></td>
+                                            </tr>
+                                        }
                                     </tbody>
                                 </table>
                             </div>
@@ -213,15 +253,14 @@
                             </div>
                             <div class="d-grid gap-2 mt-3">
                                 <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-hub">Approve new users</a>
-                                <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
                                 @if (isSuperAdmin)
                                 {
                                     <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
                                 }
-                                <a asp-controller="Admin" asp-action="ComplaintsDisputes" class="btn btn-hub-outline">View complaints</a>
+                                <a asp-controller="AdminDispute" asp-action="IndexDispute" class="btn btn-hub-outline">View complaints</a>
                                 <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="btn btn-hub-outline">Approve return requests</a>
                                 <a asp-controller="Email" asp-action="Send" class="btn btn-hub-outline">Send system warning email</a>
-                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Monitor system health</a>
+                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Manage system settings</a>
                             </div>
                         </div>
                     </article>
@@ -341,35 +380,44 @@
         font-weight: 600;
     }
 
-    .hub-panel-note {
-        margin: 10px 0 0;
-        color: #7a7695;
-        font-size: .9rem;
+    .hub-trend-list {
+        display: grid;
+        gap: 10px;
     }
 
-    .hub-line-chart {
-        margin-top: 10px;
-        height: 170px;
-        border-radius: 10px;
-        background: linear-gradient(180deg, #faf9ff 0%, #f3efff 100%);
-        padding: 8px;
+    .hub-trend-item {
+        display: grid;
+        grid-template-columns: 70px 1fr 40px;
+        align-items: center;
+        gap: 10px;
     }
 
-    .hub-line-chart svg {
-        width: 100%;
+    .trend-label {
+        font-size: .8rem;
+        color: #6f6a8b;
+    }
+
+    .trend-bar-wrap {
+        height: 10px;
+        background: #f1edff;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .trend-bar {
+        display: block;
         height: 100%;
+        background: linear-gradient(90deg, #7b61ff 0%, #5b44d6 100%);
+        border-radius: 999px;
     }
 
-    .hub-line-chart polyline {
-        fill: none;
-        stroke: #5b44d6;
-        stroke-width: 4;
-        stroke-linecap: round;
-        stroke-linejoin: round;
+    .trend-value {
+        text-align: right;
+        font-size: .82rem;
+        color: #4f4a6c;
     }
 
     .hub-bar-chart {
-        margin-top: 10px;
         height: 170px;
         display: flex;
         align-items: flex-end;
@@ -385,6 +433,18 @@
         background: linear-gradient(180deg, #7b61ff 0%, #5b44d6 100%);
     }
 
+    .hub-axis-labels {
+        margin-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    .hub-axis-labels small {
+        color: #8d88a8;
+        font-size: .7rem;
+    }
+
     .hub-donut-wrap {
         margin-top: 10px;
         display: grid;
@@ -397,7 +457,6 @@
         width: 116px;
         height: 116px;
         border-radius: 50%;
-        background: conic-gradient(#5b44d6 0 38%, #8d7bff 38% 65%, #b4a7ff 65% 86%, #ddd6ff 86% 100%);
         position: relative;
     }
 
@@ -422,11 +481,6 @@
         border-radius: 50%;
         margin-right: 6px;
     }
-
-    .dot-1 { background: #5b44d6; }
-    .dot-2 { background: #8d7bff; }
-    .dot-3 { background: #b4a7ff; }
-    .dot-4 { background: #ddd6ff; }
 
     .hub-list li {
         display: flex;
@@ -485,6 +539,11 @@
         color: #c62828;
     }
 
+    .pill-info {
+        background: #e4f2ff;
+        color: #0d6efd;
+    }
+
     .btn-hub {
         background: #5b44d6;
         border: 1px solid #5b44d6;
@@ -531,6 +590,15 @@
 
         .hub-legend {
             width: 100%;
+        }
+
+        .hub-trend-item {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .trend-value {
+            text-align: left;
         }
     }
 </style>
