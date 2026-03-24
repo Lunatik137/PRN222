@@ -76,15 +76,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Terraform Module ECS
-        id: terraform-ecs
-        uses: ./.github/actions/terraform_ecs
-        with:
-          environment: ${{ inputs.environment }}
+      - name: Update Dockerrun.aws.json with commit SHA
+        run: |
+          jq --arg tag "$GITHUB_SHA" '
+            .Image.Name = (.Image.Name + ":" + $tag)
+          ' Dockerrun.aws.json > tmp.json && mv tmp.json Dockerrun.aws.json
+        working-directory: '.'
+      
+      - name: Update Beanstalkon configuration with commit SHA
+        run: |
+          zip deployment.zip Dockerrun.aws.json
+          aws s3 cp deployment.zip s3://chienpq137-863700943489-us-east-1-an/deployment.zip
+          
+          aws elasticbeanstalk create-application-version \
+            --application-name PRN222 \
+            --version-label $GITHUB_SHA \
+            --source-bundle S3Bucket="chienpq137-863700943489-us-east-1-an",S3Key="deployment.zip"
 
-      - name: Deploy App to ECS
-        uses: ./.github/actions/ecs
-        with:
-          cluster-name: ${{ steps.terraform-ecs.outputs.cluster-name }}
-          service: ${{ steps.terraform-ecs.outputs.app }}
-          image: ${{ needs.ci-pipeline.outputs.app-image }}
+          aws elasticbeanstalk update-environment \
+            --environment-name PRN222-env-1 \
+            --version-label $GITHUB_SHA
+        working-directory: '.'

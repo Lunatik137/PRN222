@@ -52,16 +52,16 @@ sgs:
     tags:
       Owner: "chienpq137"
 
-  rds_sg:
-    name: "rds-sg"
-    description: "Security group for RDS Database"
-    vpc_key: "vpc_1"
+  # rds_sg:
+  #   name: "rds-sg"
+  #   description: "Security group for RDS Database"
+  #   vpc_key: "vpc_1"
 
-    egress_cidr_blocks: ["0.0.0.0/0"]
-    egress_rules: ["all-all"]
+  #   egress_cidr_blocks: ["0.0.0.0/0"]
+  #   egress_rules: ["all-all"]
 
-    tags:
-      Owner: "chienpq137"
+  #   tags:
+  #     Owner: "chienpq137"
 
 sg_rules:
   rule_1:
@@ -73,14 +73,14 @@ sg_rules:
     protocol: "tcp"
     description: "HTTP from ALB"
 
-  rule_2:
-    sg_key: "rds_sg"
-    source_sg_key: "ecs_app_sg"
-    type: "ingress"
-    from_port: 1433
-    to_port: 1433
-    protocol: "tcp"
-    description: "SQL Server"
+  # rule_2:
+  #   sg_key: "rds_sg"
+  #   source_sg_key: "ecs_app_sg"
+  #   type: "ingress"
+  #   from_port: 1433
+  #   to_port: 1433
+  #   protocol: "tcp"
+  #   description: "SQL Server"
 
 ################################################################################
 # Route 53 Zone
@@ -167,80 +167,80 @@ route53_records:
 ################################################################################
 # RDS
 ################################################################################
-rds_databases:
-  rds_database_1:
-    # Engine options
-    engine: "sqlserver-ex"
-    engine_version: "15.00.4236.7.v1"
+rds_databases: {}
+  # rds_database_1:
+  #   # Engine options
+  #   engine: "sqlserver-ex"
+  #   engine_version: "15.00.4236.7.v1"
 
-    # Availability and durability
-    multi_az: false
+  #   # Availability and durability
+  #   multi_az: false
 
-    # Settings
-    identifier: "cicd-lab-db"
-    username: "chienpq137"
-    manage_master_user_password: true
-    master_user_secret_kms_key_id: "alias/aws/secretsmanager"
+  #   # Settings
+  #   identifier: "cicd-lab-db"
+  #   username: "chienpq137"
+  #   manage_master_user_password: true
+  #   master_user_secret_kms_key_id: "alias/aws/secretsmanager"
 
-    # Instance configuration
-    instance_class: "db.t3.micro"
+  #   # Instance configuration
+  #   instance_class: "db.t3.micro"
 
-    # Storage
-    storage_type: "gp3"
-    allocated_storage: 20
-    iops: null
-    storage_throughput: null
-    max_allocated_storage: 220
-    dedicated_log_volume: false
+  #   # Storage
+  #   storage_type: "gp3"
+  #   allocated_storage: 20
+  #   iops: null
+  #   storage_throughput: null
+  #   max_allocated_storage: 220
+  #   dedicated_log_volume: false
 
-    # Subnet groups
-    create_db_subnet_group: true
-    db_subnet_group_name: "cicd-lab-db-subnet-group"
-    db_subnet_group_description: "Subnet group for database"
-    vpc_key: "vpc_1"
+  #   # Subnet groups
+  #   create_db_subnet_group: true
+  #   db_subnet_group_name: "cicd-lab-db-subnet-group"
+  #   db_subnet_group_description: "Subnet group for database"
+  #   vpc_key: "vpc_1"
 
-    # Connectivity
-    network_type: "IPV4"
-    publicly_accessible: true
-    sg_key: "rds_sg"
-    ca_cert_identifier: "rds-ca-rsa2048-g1"
-    port: 1433
+  #   # Connectivity
+  #   network_type: "IPV4"
+  #   publicly_accessible: true
+  #   sg_key: "rds_sg"
+  #   ca_cert_identifier: "rds-ca-rsa2048-g1"
+  #   port: 1433
 
-    # Database authentication
-    iam_database_authentication_enabled: false
+  #   # Database authentication
+  #   iam_database_authentication_enabled: false
 
-    # Monitoring role
-    create_monitoring_role: true
-    monitoring_role_name: "cicd-lab-db-monitoring-role"
-    monitoring_role_description: "IAM role for monitoring database"
+  #   # Monitoring role
+  #   create_monitoring_role: true
+  #   monitoring_role_name: "cicd-lab-db-monitoring-role"
+  #   monitoring_role_description: "IAM role for monitoring database"
 
-    # Monitoring
-    performance_insights_enabled: true
-    performance_insights_retention_period: 7
-    performance_insights_kms_key_id: "alias/aws/rds"
-    monitoring_interval: 60
-    create_cloudwatch_log_group: true
-    enabled_cloudwatch_logs_exports: ["error"]
+  #   # Monitoring
+  #   performance_insights_enabled: true
+  #   performance_insights_retention_period: 7
+  #   performance_insights_kms_key_id: "alias/aws/rds"
+  #   monitoring_interval: 60
+  #   create_cloudwatch_log_group: true
+  #   enabled_cloudwatch_logs_exports: ["error"]
 
-    # Database options
-    family: "sqlserver-ex-15.0"
-    major_engine_version: "15.00"
+  #   # Database options
+  #   family: "sqlserver-ex-15.0"
+  #   major_engine_version: "15.00"
 
-    # Backup
-    backup_retention_period: 7
-    backup_window: "03:00-04:00"
-    copy_tags_to_snapshot: true
-    storage_encrypted: true
-    kms_key_id: "alias/aws/rds"
+  #   # Backup
+  #   backup_retention_period: 7
+  #   backup_window: "03:00-04:00"
+  #   copy_tags_to_snapshot: true
+  #   storage_encrypted: true
+  #   kms_key_id: "alias/aws/rds"
 
-    # Maintenance
-    auto_minor_version_upgrade: true
-    maintenance_window: "Mon:04:00-Mon:05:00"
-    deletion_protection: false
+  #   # Maintenance
+  #   auto_minor_version_upgrade: true
+  #   maintenance_window: "Mon:04:00-Mon:05:00"
+  #   deletion_protection: false
 
-    # Tags
-    tags:
-      Owner: "chienpq137"
+  #   # Tags
+  #   tags:
+  #     Owner: "chienpq137"
 
 ################################################################################
 # ECR
@@ -326,12 +326,12 @@ ecs_clusters:
         tasks_iam_role_name: "cicd-lab-app-tasks"
         tasks_iam_role_description: "Tasks IAM role for cicd-lab"
         tasks_iam_role_policies:
-          RDSFullAccess: "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
+          # RDSFullAccess: "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
         tasks_iam_role_tags:
           Owner: "chienpq137"
 
         # Task execution role
-        rds_key: "rds_database_1"
+        # rds_key: "rds_database_1"
 
         # Fault injection
         enable_fault_injection: false
@@ -363,7 +363,8 @@ ecs_clusters:
             memoryReservation: 2048
 
             # Environment variables
-            connect_db: true
+            # connect_db: true
+            connect_db: false
             secrets: []
             environment: []
             environmentFiles: []
