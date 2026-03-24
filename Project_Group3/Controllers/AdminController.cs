@@ -280,9 +280,9 @@ public class AdminController(
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
-        if (!CanModerateProduct(product))
+        if (!CanHideProduct(product))
         {
-            TempData["ActionError"] = $"Product #{product.id} must be in reported status before hide/delete.";
+            TempData["ActionError"] = $"Product #{product.id} must be in reported status before hide.";
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
@@ -331,9 +331,9 @@ public class AdminController(
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
-        if (!CanModerateProduct(product))
+        if (!CanDeleteProduct(product))
         {
-            TempData["ActionError"] = $"Product #{product.id} must be in reported status before hide/delete.";
+            TempData["ActionError"] = $"Product #{product.id} must be in reported or hidden status before delete.";
             return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
         }
 
@@ -354,6 +354,45 @@ public class AdminController(
                        Target = product.title ?? $"Product #{product.id}",
                        Details = input.Reason.Trim()
                    });
+
+        return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ActivateProduct(ActivateProductInput input, CancellationToken cancellationToken)
+    {
+        if (!HasSuperAdminAccess())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var product = await dbContext.Products
+            .FirstOrDefaultAsync(p => p.id == input.ProductId, cancellationToken);
+        if (product is null)
+        {
+            TempData["ActionError"] = $"Product #{input.ProductId} not found.";
+            return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
+        }
+
+        if (!string.Equals(product.status, ProductStatusHidden, StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["ActionError"] = $"Product #{product.id} must be in hidden status before activate.";
+            return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
+        }
+
+        product.status = ProductStatusActive;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        TempData["ActionSuccess"] = $"Product #{product.id} has been activated.";
+        AppendProductModerationLog(new AdminActionLogItem
+        {
+            AtUtc = DateTime.UtcNow,
+            Action = "Activate Product",
+            Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
+            Target = product.title ?? $"Product #{product.id}",
+            Details = "Activated from hidden status."
+        });
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -674,8 +713,12 @@ public class AdminController(
     private static int GetReportCount(Product product)
         => product.Reviews.Count(r => (r.rating ?? 0) <= 2);
 
-    private static bool CanModerateProduct(Product product)
-        => string.Equals(product.status, ProductStatusReported, StringComparison.OrdinalIgnoreCase);
+    private static bool CanHideProduct(Product product)
+         => string.Equals(product.status, ProductStatusReported, StringComparison.OrdinalIgnoreCase);
+
+    private static bool CanDeleteProduct(Product product)
+        => string.Equals(product.status, ProductStatusReported, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(product.status, ProductStatusHidden, StringComparison.OrdinalIgnoreCase);
 
     private static void LockSeller(User seller, string reason)
     {

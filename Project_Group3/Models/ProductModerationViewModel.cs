@@ -58,3 +58,13 @@ public sealed class ReportProductInput
 
     public string? Keyword { get; init; }
 }
+
+public sealed class ActivateProductInput
+{
+    [Required]
+    public int ProductId { get; init; }
+
+    public string? Status { get; init; } = "reported";
+
+    public string? Keyword { get; init; }
+}

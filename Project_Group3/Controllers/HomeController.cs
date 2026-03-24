@@ -26,13 +26,14 @@ namespace Project_Group3.Controllers
             if (isBuyer)
             {
                 products = await dbContext.Products
-                    .AsNoTracking()
-                    .Include(p => p.category)
-                    .Include(p => p.seller)
-                    .Where(p => p.status != null && p.status.ToLower() == ProductStatusActive)
-                    .OrderByDescending(p => p.id)
-                    .Select(p => new BuyerProductCardViewModel
-                    {
+                     .AsNoTracking()
+                     .Include(p => p.category)
+                     .Include(p => p.seller)
+                     .Where(p => p.status != null &&
+                         (p.status.ToLower() == ProductStatusActive || p.status.ToLower() == ProductStatusReported))
+                     .OrderByDescending(p => p.id)
+                     .Select(p => new BuyerProductCardViewModel
+                     {
                         Id = p.id,
                         Title = string.IsNullOrWhiteSpace(p.title) ? $"Product #{p.id}" : p.title!,
                         Description = p.description,

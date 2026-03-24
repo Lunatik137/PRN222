@@ -126,16 +126,29 @@
                                                 @product.description
                                             </td>
                                             <td>
-                                                <form asp-action="HideProduct" method="post" class="mb-2" onsubmit="return confirm('Hide product #@product.id?')">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="ProductId" value="@product.id" />
-                                                    <input type="hidden" name="Status" value="@Model.Status" />
-                                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
-                                                    <div class="input-group input-group-sm mb-1">
-                                                        <input type="text" name="Reason" class="form-control" placeholder="Hide reason" required />
-                                                    </div>
-                                                    <button type="submit" class="btn btn-warning btn-sm w-100">Hide product</button>
-                                                </form>
+                                                @if (normalizedStatus == "hidden")
+                                                {
+                                                    <form asp-action="ActivateProduct" method="post" class="mb-2" onsubmit="return confirm('Activate product #@product.id?')">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="ProductId" value="@product.id" />
+                                                        <input type="hidden" name="Status" value="@Model.Status" />
+                                                        <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                        <button type="submit" class="btn btn-success btn-sm w-100">Active product</button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <form asp-action="HideProduct" method="post" class="mb-2" onsubmit="return confirm('Hide product #@product.id?')">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="ProductId" value="@product.id" />
+                                                        <input type="hidden" name="Status" value="@Model.Status" />
+                                                        <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                        <div class="input-group input-group-sm mb-1">
+                                                            <input type="text" name="Reason" class="form-control" placeholder="Hide reason" required />
+                                                        </div>
+                                                        <button type="submit" class="btn btn-warning btn-sm w-100">Hide product</button>
+                                                    </form>
+                                                }
 
                                                 <form asp-action="DeleteProduct" method="post" class="mb-2" onsubmit="return confirm('Delete product #@product.id? This action is severe.')">
                                                     @Html.AntiForgeryToken()
