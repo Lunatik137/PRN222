@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Security;
 using Project_Group3.Services;
 
 namespace Project_Group3.Controllers;
@@ -26,18 +27,6 @@ public class AdminController(
     private const int SellerAutoLockRiskThreshold = 100;
     private const string ActionLogSessionKey = "AdminUserManagementLogs";
     private const string ProductModerationLogSessionKey = "AdminProductModerationLogs";
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor"
-    };
-    private static readonly HashSet<string> AllowedTwoFactorRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor",
-        "support"
-    };
-
     [HttpGet]
     public async Task<IActionResult> UserManagement([FromQuery] UserManagementFilterInput filter, CancellationToken cancellationToken)
     {
@@ -79,7 +68,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveUser(int id, string? keyword, string? status, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -94,7 +83,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RejectUser(LockUserInput input, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -115,7 +104,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> LockUser(LockUserInput input, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -136,7 +125,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UnlockUser(int id, string? keyword, string? status, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -150,7 +139,7 @@ public class AdminController(
     [HttpGet]
     public async Task<IActionResult> ProductModeration([FromQuery] ProductModerationFilterInput filter, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanAccessProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -202,7 +191,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReportProduct(ReportProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanProcessProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -246,7 +235,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> HideProduct(ModerateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -302,7 +291,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteProduct(ModerateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -353,7 +342,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ActivateProduct(ActivateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -397,7 +386,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AutoModerateProduct(ModerateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -464,7 +453,7 @@ public class AdminController(
     [HttpGet]
     public async Task<IActionResult> SystemSettings(CancellationToken cancellationToken)
     {
-        if (!HasTwoFactorSettingsAccess())
+        if (!CanUseSystemSettings())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -495,7 +484,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateAdminTwoFactor(AdminTwoFactorSettingsViewModel model, CancellationToken cancellationToken)
     {
-        if (!HasTwoFactorSettingsAccess())
+        if (!CanUseSystemSettings())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -566,35 +555,22 @@ public class AdminController(
     }
 
     private bool HasAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessUserManagement);
 
-        return userId is not null
-            && AllowedRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
-    private bool HasTwoFactorSettingsAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+    private bool CanEditUsers()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanEditUsers);
 
-        return userId is not null
-            && AllowedTwoFactorRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
-    private bool HasSuperAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+    private bool CanAccessProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessProductModeration);
 
-        return userId is not null
-            && string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
+    private bool CanProcessProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanProcessProductModeration);
+
+    private bool CanPerformFullProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanPerformFullProductModeration);
+
+    private bool CanUseSystemSettings()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanUseSystemSettings);
     private static (bool? IsApproved, bool? IsLocked) MapStatus(string? status)
         => status?.ToLowerInvariant() switch
         {

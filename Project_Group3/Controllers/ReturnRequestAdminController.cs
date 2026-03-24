@@ -1,18 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
+using Project_Group3.Security;
 using Project_Group3.ViewModel;
 
 namespace Project_Group3.Controllers;
 
 public class ReturnRequestAdminController(CloneEbayDbContext dbContext) : Controller
 {
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor"
-    };
-
     [HttpGet]
     public async Task<IActionResult> Index(string? status, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
@@ -170,13 +165,5 @@ public class ReturnRequestAdminController(CloneEbayDbContext dbContext) : Contro
     }
 
     private bool HasAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
-
-        return userId is not null
-            && AllowedRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessRefunds);
 }

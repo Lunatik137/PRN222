@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
+using Project_Group3.Security;
 using Project_Group3.ViewModel;
 using System.Globalization;
 using System.Text;
@@ -9,12 +10,6 @@ namespace Project_Group3.Controllers;
 
 public class AdminAnalyticsController(CloneEbayDbContext dbContext) : Controller
 {
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor"
-    };
-
     private static readonly HashSet<string> AllowedPeriodTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "day",
@@ -32,7 +27,7 @@ public class AdminAnalyticsController(CloneEbayDbContext dbContext) : Controller
         int? year = null,
         CancellationToken cancellationToken = default)
     {
-        if (!HasAdminAccess())
+        if (!CanAccessAnalytics())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -52,7 +47,7 @@ public class AdminAnalyticsController(CloneEbayDbContext dbContext) : Controller
         int? year = null,
         CancellationToken cancellationToken = default)
     {
-        if (!HasAdminAccess())
+        if (!CanExportAnalytics())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -245,14 +240,9 @@ public class AdminAnalyticsController(CloneEbayDbContext dbContext) : Controller
     private static string EscapeHtml(string value)
         => System.Net.WebUtility.HtmlEncode(value);
 
-    private bool HasAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+    private bool CanAccessAnalytics()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessAnalytics);
 
-        return userId is not null
-            && AllowedRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
+    private bool CanExportAnalytics()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanExportAnalytics);
 }

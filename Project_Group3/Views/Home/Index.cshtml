@@ -8,8 +8,8 @@
     var canBackToDashboard = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase)
         || string.Equals(role, "monitor", StringComparison.OrdinalIgnoreCase)
         || string.Equals(role, "support", StringComparison.OrdinalIgnoreCase);
-    var dashboardController = string.Equals(role, "support", StringComparison.OrdinalIgnoreCase) ? "Admin" : "AdminDashboard";
-    var dashboardAction = string.Equals(role, "support", StringComparison.OrdinalIgnoreCase) ? "SystemSettings" : "Dashboard";
+    var dashboardController = "AdminDashboard";
+    var dashboardAction = "Dashboard";
 }
 
 <div class="ebay-home">
