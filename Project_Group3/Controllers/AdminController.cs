@@ -373,6 +373,7 @@ public class AdminController(
         }
 
         product.status = ProductStatusActive;
+        product.reportnumber = 0;
         await dbContext.SaveChangesAsync(cancellationToken);
         await notificationHub.Clients.All.SendAsync(
             "ProductStatusChanged",
