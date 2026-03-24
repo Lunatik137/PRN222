@@ -362,6 +362,7 @@ public class AdminController(
         }
 
         product.status = ProductStatusActive;
+        product.reportnumber = 0;
         await dbContext.SaveChangesAsync(cancellationToken);
         await notificationHub.Clients.All.SendAsync(
             "ProductStatusChanged",
@@ -502,11 +503,16 @@ public class AdminController(
         }
 
         var wantsEnable = model.IsTwoFactorEnabled;
-        if (wantsEnable && user.isTwoFactorEnabled != true)
+        var isCurrentTwoFactorEnabled = user.isTwoFactorEnabled == true;
+        var isChangingTwoFactorState = wantsEnable != isCurrentTwoFactorEnabled;
+
+        if (isChangingTwoFactorState)
         {
             if (string.IsNullOrWhiteSpace(model.CurrentPassword))
             {
-                TempData["ActionError"] = "Please enter your account password to enable 2FA.";
+                TempData["ActionError"] = wantsEnable
+                    ? "Please enter your account password to enable 2FA."
+                    : "Please enter your account password to disable 2FA.";
                 model.Email = user.email;
                 model.Role = user.role ?? string.Empty;
                 return View(nameof(SystemSettings), model);
