@@ -1,10 +1,15 @@
 ﻿@model Project_Group3.Models.BuyerMarketplaceViewModel
 @using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "Clone eBay Home";
+    ViewData["Title"] = "eBay Home";
     var username = Context.Session.GetString("Username");
     var role = Context.Session.GetString("Role") ?? string.Empty;
     var isBuyer = Model?.IsBuyer == true && string.Equals(role, "buyer", StringComparison.OrdinalIgnoreCase);
+    var canBackToDashboard = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(role, "monitor", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(role, "support", StringComparison.OrdinalIgnoreCase);
+    var dashboardController = string.Equals(role, "support", StringComparison.OrdinalIgnoreCase) ? "Admin" : "AdminDashboard";
+    var dashboardAction = string.Equals(role, "support", StringComparison.OrdinalIgnoreCase) ? "SystemSettings" : "Dashboard";
 }
 
 <div class="ebay-home">
@@ -20,7 +25,19 @@
                 }
                 else
                 {
-                    <span class="fw-semibold text-dark">@username</span>
+                    <span class="fw-semibold text-dark me-2">@username</span>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline me-2">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                    </form>
+                    @if (canBackToDashboard)
+                    {
+                        <a asp-controller="@dashboardController"
+                           asp-action="@dashboardAction"
+                           class="btn btn-outline-primary btn-sm">
+                            Back to dashboard
+                        </a>
+                    }
                 }
             </div>
             <div class="ebay-top-links">

@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Services;
 
 namespace Project_Group3.Controllers;
 
 public class AdminController(
     IUserRepository userRepository,
     CloneEbayDbContext dbContext,
-    ILogger<AdminController> logger) : Controller
+    ILogger<AdminController> logger,
+    IPasswordHasherService passwordHasherService) : Controller
 {
     private const string ProductStatusActive = "active";
     private const string ProductStatusReported = "reported";
@@ -482,7 +484,8 @@ public class AdminController(
                 return View(nameof(SystemSettings), model);
             }
 
-            if (!string.Equals(user.password, model.CurrentPassword, StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(user.password)
+                || !passwordHasherService.VerifyPassword(user.password, model.CurrentPassword))
             {
                 TempData["ActionError"] = "Current password is incorrect.";
                 model.Email = user.email;

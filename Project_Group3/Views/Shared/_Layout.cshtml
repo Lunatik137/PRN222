@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Project_Group3</title>
+    <title>@ViewData["Title"] ebay</title>
     <script type="importmap"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -44,6 +44,9 @@
                             @if (Context.Session.GetString("Username") is { } username)
                             {
                                 <li class="nav-item d-flex align-items-center me-2 text-success">Hello!, @username</li>
+                                <li class="nav-item me-2">
+                                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Account" asp-action="ChangePassword">Change password</a>
+                                </li>
                                 <li class="nav-item">
                                     <form asp-controller="Account" asp-action="Logout" method="post">
                                         <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>

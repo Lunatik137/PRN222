@@ -6,13 +6,15 @@ using Microsoft.AspNetCore.SignalR;
 using Project_Group3.Hubs;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Services;
 
 namespace Project_Group3.Controllers;
 public class AccountController(
     IUserRepository userRepository,
     IHubContext<AdminNotificationHub> adminNotificationHub,
     IConfiguration configuration,
-    ILogger<AccountController> logger) : Controller
+    ILogger<AccountController> logger,
+    IPasswordHasherService passwordHasherService) : Controller
 {
     private const string PendingAdminUserIdSessionKey = "PendingAdminUserId";
     private const string PendingAdminUsernameSessionKey = "PendingAdminUsername";
@@ -118,8 +120,9 @@ public class AccountController(
             ModelState.AddModelError(string.Empty, "The login request has been canceled. Please try again.");
             return View(model);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Login failed unexpectedly for username/email '{UsernameInput}'.", model.Username);
             ModelState.AddModelError(string.Empty, "An error occurred during the login process.");
             return View(model);
         }
@@ -191,6 +194,56 @@ public class AccountController(
         return View(new RegisterViewModel());
     }
 
+    [HttpGet]
+    public IActionResult ChangePassword()
+    {
+        if (HttpContext.Session.GetInt32("UserId") is null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        return View(new ChangePasswordViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId is null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var user = await userRepository.GetByIdAsync(userId.Value, CancellationToken.None);
+        if (user?.password is null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (!passwordHasherService.VerifyPassword(user.password, model.CurrentPassword))
+        {
+            ModelState.AddModelError(nameof(model.CurrentPassword), "Current password is incorrect.");
+            return View(model);
+        }
+
+        user.password = passwordHasherService.HashPassword(model.NewPassword);
+        var changed = await userRepository.UpdateUserAsync(user, CancellationToken.None);
+        if (!changed)
+        {
+            ModelState.AddModelError(string.Empty, "Cannot update password. Please try again.");
+            return View(model);
+        }
+
+        TempData["LoginMessage"] = "Password changed successfully.";
+        return RedirectToAction("Index", "Home");
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
@@ -224,7 +277,7 @@ public class AccountController(
         {
             username = model.Username.Trim(),
             email = model.Email.Trim(),
-            password = model.Password,
+            password = passwordHasherService.HashPassword(model.Password),
             role = model.Role,
             Phone = string.IsNullOrWhiteSpace(model.Phone) ? null : model.Phone.Trim(),
             createdAt = DateTime.UtcNow,
