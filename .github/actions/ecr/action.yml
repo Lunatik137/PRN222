@@ -21,8 +21,7 @@ runs:
       id: image
       shell: bash
       run: |
-        docker build -t ${{ inputs.ecr-repo }}:latest .
-        echo "image=${{ inputs.ecr-repo }}:latest" >> $GITHUB_OUTPUT
+        docker build -t ${{ inputs.ecr-repo }}:${GITHUB_SHA::7} .
       working-directory: ${{ inputs.working-directory }}
 
     - name: Push image to Amazon ECR

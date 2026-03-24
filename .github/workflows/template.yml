@@ -51,9 +51,6 @@ jobs:
           ecr-repo: "863700943489.dkr.ecr.us-east-1.amazonaws.com/cicd-lab-app-repo"
           working-directory: './Project_Group3'
 
-    outputs:
-      app-image: ${{ steps.app-image.outputs.image }}
-
 # CD Pipeline 
   cd-pipeline:
     needs: ci-pipeline
@@ -72,7 +69,7 @@ jobs:
 
       - name: Update Dockerrun.aws.json with commit SHA
         run: |
-          jq --arg tag "$GITHUB_SHA" '
+          jq --arg tag "${GITHUB_SHA::7}" '
             .Image.Name = (.Image.Name + ":" + $tag)
           ' Dockerrun.aws.json > tmp.json && mv tmp.json Dockerrun.aws.json
         working-directory: '.'
@@ -84,10 +81,10 @@ jobs:
           
           aws elasticbeanstalk create-application-version \
             --application-name PRN222 \
-            --version-label $GITHUB_SHA \
+            --version-label ${GITHUB_SHA::7} \
             --source-bundle S3Bucket="chienpq137-863700943489-us-east-1-an",S3Key="deployment.zip"
 
           aws elasticbeanstalk update-environment \
             --environment-name PRN222-env-1 \
-            --version-label $GITHUB_SHA
+            --version-label ${GITHUB_SHA::7}
         working-directory: '.'
