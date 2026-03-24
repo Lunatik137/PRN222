@@ -1,21 +1,80 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
 
 namespace Project_Group3.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController(CloneEbayDbContext dbContext, ILogger<HomeController> logger) : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-
-        public HomeController(ILogger<HomeController> logger)
+        private const string BuyerRole = "buyer";
+        private const string ProductStatusActive = "active";
+        private const string ProductStatusReported = "reported";
+        public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            _logger = logger;
+            var role = HttpContext.Session.GetString("Role") ?? string.Empty;
+            var isBuyer = string.Equals(role, BuyerRole, StringComparison.OrdinalIgnoreCase);
+
+            List<BuyerProductCardViewModel> products = [];
+            if (isBuyer)
+            {
+                products = await dbContext.Products
+                    .AsNoTracking()
+                    .Include(p => p.category)
+                    .Include(p => p.seller)
+                    .Where(p => p.status != null && p.status.ToLower() == ProductStatusActive)
+                    .OrderByDescending(p => p.id)
+                    .Select(p => new BuyerProductCardViewModel
+                    {
+                        Id = p.id,
+                        Title = string.IsNullOrWhiteSpace(p.title) ? $"Product #{p.id}" : p.title!,
+                        Description = p.description,
+                        Price = p.price,
+                        ImageUrl = p.images,
+                        CategoryName = p.category != null ? p.category.name : null,
+                        SellerName = p.seller != null ? p.seller.username : null
+                    })
+                    .ToListAsync(cancellationToken);
+            }
+
+            var vm = new BuyerMarketplaceViewModel
+            {
+                IsBuyer = isBuyer,
+                Products = products
+            };
+
+            return View(vm);
         }
 
-        public IActionResult Index()
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReportProduct(BuyerReportProductInput input, CancellationToken cancellationToken)
         {
-            return View();
+            var role = HttpContext.Session.GetString("Role") ?? string.Empty;
+            if (!string.Equals(role, BuyerRole, StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ActionError"] = "Only buyer accounts can report products.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (string.IsNullOrWhiteSpace(input.Reason))
+            {
+                TempData["ActionError"] = "Reason is required when reporting a product.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var product = await dbContext.Products.FirstOrDefaultAsync(p => p.id == input.ProductId, cancellationToken);
+            if (product is null)
+            {
+                TempData["ActionError"] = $"Product #{input.ProductId} was not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            product.status = ProductStatusReported;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            TempData["ActionSuccess"] = $"Product #{product.id} has been moved to '{ProductStatusReported}' with reason: {input.Reason.Trim()}";
+            return RedirectToAction(nameof(Index));
         }
 
         public IActionResult Privacy()
