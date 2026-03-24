@@ -87,8 +87,16 @@ public class AccountController(
 
             if (user.isTwoFactorEnabled != true)
             {
-                ModelState.AddModelError(string.Empty, "Admin account must enable 2FA before accessing Admin panel.");
-                return View(model);
+                HttpContext.Session.SetInt32("UserId", user.id);
+                HttpContext.Session.SetString("Username", user.username ?? model.Username);
+                HttpContext.Session.SetString("Role", user.role ?? string.Empty);
+                HttpContext.Session.SetString(AdminTwoFactorVerifiedSessionKey, "true");
+
+                TempData["LoginMessage"] = $"Hello, {user.username}!";
+                return string.Equals(user.role, "superadmin", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(user.role, "monitor", StringComparison.OrdinalIgnoreCase)
+                    ? RedirectToAction("Dashboard", "AdminDashboard")
+                    : RedirectToAction("SystemSettings", "Admin");
             }
 
             if (string.IsNullOrWhiteSpace(user.email))

@@ -42,8 +42,7 @@
 
                         <div class="col-md-6">
                             <label asp-for="CurrentPassword" class="form-label"></label>
-                            <input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" placeholder="Required when enabling 2FA" />
-                            <span asp-validation-for="CurrentPassword" class="text-danger"></span>
+                            <input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" placeholder="Required when changing 2FA status" />                            <span asp-validation-for="CurrentPassword" class="text-danger"></span>
                             <small class="text-muted d-block mt-1">If you turn ON 2FA, you must re-enter your current password.</small>
                         </div>
 
