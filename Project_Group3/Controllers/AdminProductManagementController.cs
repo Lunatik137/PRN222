@@ -14,9 +14,20 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     private const int DeleteReportThreshold = 3;
     private const int SellerAutoLockRiskThreshold = 100;
 
+    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "superadmin",
+        "monitor"
+    };
+
     [HttpGet("products")]
     public async Task<IActionResult> GetProducts([FromQuery] string? status, CancellationToken cancellationToken)
     {
+        if (!HasAdminAccess())
+        {
+            return Unauthorized(new { message = "Admin 2FA verification is required." });
+        }
+
         var normalizedStatus = string.IsNullOrWhiteSpace(status) ? ProductStatusReported : status.Trim().ToLowerInvariant();
         var products = await dbContext.Products
             .Include(p => p.seller)
@@ -42,6 +53,11 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("products/{id:int}/report")]
     public async Task<IActionResult> ReportProduct(int id, [FromBody] ModerateProductApiRequest request, CancellationToken cancellationToken)
     {
+        if (!HasAdminAccess())
+        {
+            return Unauthorized(new { message = "Admin 2FA verification is required." });
+        }
+
         var product = await dbContext.Products.Include(p => p.seller).FirstOrDefaultAsync(p => p.id == id, cancellationToken);
         if (product is null)
         {
@@ -57,6 +73,11 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("products/{id:int}/hide")]
     public async Task<IActionResult> HideProduct(int id, [FromBody] ModerateProductApiRequest request, CancellationToken cancellationToken)
     {
+        if (!HasAdminAccess())
+        {
+            return Unauthorized(new { message = "Admin 2FA verification is required." });
+        }
+
         var product = await dbContext.Products.Include(p => p.seller).FirstOrDefaultAsync(p => p.id == id, cancellationToken);
         if (product is null)
         {
@@ -77,6 +98,11 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("products/{id:int}/delete")]
     public async Task<IActionResult> DeleteProduct(int id, [FromBody] ModerateProductApiRequest request, CancellationToken cancellationToken)
     {
+        if (!HasAdminAccess())
+        {
+            return Unauthorized(new { message = "Admin 2FA verification is required." });
+        }
+
         var product = await dbContext.Products
             .Include(p => p.seller)
             .Include(p => p.Reviews)
@@ -109,6 +135,11 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("users/{sellerId:int}/lock")]
     public async Task<IActionResult> LockSeller(int sellerId, [FromBody] LockSellerApiRequest request, CancellationToken cancellationToken)
     {
+        if (!HasAdminAccess())
+        {
+            return Unauthorized(new { message = "Admin 2FA verification is required." });
+        }
+
         var seller = await dbContext.Users.FirstOrDefaultAsync(u => u.id == sellerId, cancellationToken);
         if (seller is null)
         {
@@ -121,6 +152,17 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Ok(new { message = $"Seller #{sellerId} locked." });
+    }
+
+    private bool HasAdminAccess()
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+
+        return userId is not null
+            && AllowedRoles.Contains(role ?? string.Empty)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ApplyRiskScore(User? seller, int delta, string reason)

@@ -74,7 +74,10 @@ public class AdminAnalyticsController(CloneEbayDbContext dbContext) : Controller
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
 
-        return userId is not null && AllowedRoles.Contains(role ?? string.Empty);
+        return userId is not null
+            && AllowedRoles.Contains(role ?? string.Empty)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -1,0 +1,63 @@
+﻿@model Project_Group3.Models.AdminTwoFactorSettingsViewModel
+@using Microsoft.AspNetCore.Http
+
+@{
+    ViewData["Title"] = "System Settings";
+    var username = Context.Session.GetString("Username") ?? "Admin";
+}
+
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
+
+        <main class="dashboard-content section-page">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h2 class="mb-3">System Settings</h2>
+                    <p class="text-muted mb-4">Manage security settings for your admin account, @username.</p>
+
+                    @if (TempData["ActionSuccess"] is string success)
+                    {
+                        <div class="alert alert-success">@success</div>
+                    }
+                    @if (TempData["ActionError"] is string error)
+                    {
+                        <div class="alert alert-danger">@error</div>
+                    }
+
+                    <div class="mb-3">
+                        <div><strong>Role:</strong> @Model.Role</div>
+                        <div><strong>Email:</strong> @(string.IsNullOrWhiteSpace(Model.Email) ? "N/A" : Model.Email)</div>
+                        <div><strong>2FA status:</strong> @(Model.IsTwoFactorEnabled ? "Enabled" : "Disabled")</div>
+                    </div>
+
+                    <form asp-action="UpdateAdminTwoFactor" method="post" class="row g-3">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="col-12 form-check form-switch">
+                            <input asp-for="IsTwoFactorEnabled" class="form-check-input" />
+                            <label asp-for="IsTwoFactorEnabled" class="form-check-label">Enable email-based 2FA for this account</label>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="CurrentPassword" class="form-label"></label>
+                            <input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" placeholder="Required when enabling 2FA" />
+                            <span asp-validation-for="CurrentPassword" class="text-danger"></span>
+                            <small class="text-muted d-block mt-1">If you turn ON 2FA, you must re-enter your current password.</small>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Save 2FA Settings</button>
+                            <a asp-controller="AdminDashboard" asp-action="Dashboard" class="btn btn-outline-secondary ms-2">Back to dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

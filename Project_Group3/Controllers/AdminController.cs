@@ -27,6 +27,12 @@ public class AdminController(
         "superadmin",
         "monitor"
     };
+    private static readonly HashSet<string> AllowedTwoFactorRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "superadmin",
+        "monitor",
+        "support"
+    };
 
     [HttpGet]
     public async Task<IActionResult> UserManagement([FromQuery] UserManagementFilterInput filter, CancellationToken cancellationToken)
@@ -281,13 +287,13 @@ public class AdminController(
         TempData["ActionSuccess"] = isAutoLocked
                     ? $"Product #{product.id} has been hidden. Seller was auto-locked by risk policy."
                     : $"Product #{product.id} has been hidden."; AppendProductModerationLog(new AdminActionLogItem
-        {
-            AtUtc = DateTime.UtcNow,
-            Action = "Hide Product",
-            Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
-            Target = product.title ?? $"Product #{product.id}",
-            Details = input.Reason.Trim()
-        });
+                    {
+                        AtUtc = DateTime.UtcNow,
+                        Action = "Hide Product",
+                        Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
+                        Target = product.title ?? $"Product #{product.id}",
+                        Details = input.Reason.Trim()
+                    });
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -335,13 +341,13 @@ public class AdminController(
         TempData["ActionSuccess"] = isAutoLocked
                    ? $"Product #{product.id} has been deleted. Seller was auto-locked by risk policy."
                    : $"Product #{product.id} has been deleted."; AppendProductModerationLog(new AdminActionLogItem
-        {
-            AtUtc = DateTime.UtcNow,
-            Action = "Delete Product",
-            Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
-            Target = product.title ?? $"Product #{product.id}",
-            Details = input.Reason.Trim()
-        });
+                   {
+                       AtUtc = DateTime.UtcNow,
+                       Action = "Delete Product",
+                       Username = HttpContext.Session.GetString("Username") ?? "SuperAdmin",
+                       Target = product.title ?? $"Product #{product.id}",
+                       Details = input.Reason.Trim()
+                   });
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -415,7 +421,96 @@ public class AdminController(
     public IActionResult ComplaintsDisputes() => AdminSection("Complaints / Disputes");
 
     [HttpGet]
-    public IActionResult SystemSettings() => AdminSection("System Settings");
+    public async Task<IActionResult> SystemSettings(CancellationToken cancellationToken)
+    {
+        if (!HasTwoFactorSettingsAccess())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId is null)
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var user = await userRepository.GetByIdAsync(userId.Value, cancellationToken);
+        if (user is null)
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var vm = new AdminTwoFactorSettingsViewModel
+        {
+            IsTwoFactorEnabled = user.isTwoFactorEnabled == true,
+            Email = user.email,
+            Role = user.role ?? string.Empty
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateAdminTwoFactor(AdminTwoFactorSettingsViewModel model, CancellationToken cancellationToken)
+    {
+        if (!HasTwoFactorSettingsAccess())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId is null)
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var user = await userRepository.GetByIdAsync(userId.Value, cancellationToken);
+        if (user is null)
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var wantsEnable = model.IsTwoFactorEnabled;
+        if (wantsEnable && user.isTwoFactorEnabled != true)
+        {
+            if (string.IsNullOrWhiteSpace(model.CurrentPassword))
+            {
+                TempData["ActionError"] = "Please enter your account password to enable 2FA.";
+                model.Email = user.email;
+                model.Role = user.role ?? string.Empty;
+                return View(nameof(SystemSettings), model);
+            }
+
+            if (!string.Equals(user.password, model.CurrentPassword, StringComparison.Ordinal))
+            {
+                TempData["ActionError"] = "Current password is incorrect.";
+                model.Email = user.email;
+                model.Role = user.role ?? string.Empty;
+                return View(nameof(SystemSettings), model);
+            }
+        }
+
+        user.isTwoFactorEnabled = wantsEnable;
+        if (!wantsEnable)
+        {
+            user.twoFactorSecret = null;
+        }
+
+        var success = await userRepository.UpdateUserAsync(user, cancellationToken);
+        if (!success)
+        {
+            TempData["ActionError"] = "Unable to update 2FA setting. Please try again.";
+        }
+        else
+        {
+            TempData["ActionSuccess"] = wantsEnable
+                ? "2FA has been enabled. You will receive a random code by email after each login."
+                : "2FA has been disabled.";
+        }
+
+        return RedirectToAction(nameof(SystemSettings));
+    }
 
     private IActionResult AdminSection(string sectionTitle)
     {
@@ -432,15 +527,31 @@ public class AdminController(
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
 
-        return userId is not null && AllowedRoles.Contains(role ?? string.Empty);
+        return userId is not null
+            && AllowedRoles.Contains(role ?? string.Empty)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
+    }
+    private bool HasTwoFactorSettingsAccess()
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+
+        return userId is not null
+            && AllowedTwoFactorRoles.Contains(role ?? string.Empty)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
     }
     private bool HasSuperAdminAccess()
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         var role = HttpContext.Session.GetString("Role");
+        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
 
-        return userId is not null && string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
+        return userId is not null
+            && string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
     }
     private static (bool? IsApproved, bool? IsLocked) MapStatus(string? status)
         => status?.ToLowerInvariant() switch
