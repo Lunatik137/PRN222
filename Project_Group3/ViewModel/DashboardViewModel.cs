@@ -14,6 +14,14 @@ public sealed class DashboardViewModel
 
     public int OrdersToday { get; set; }
 
+    public int NewUsersYesterday { get; set; }
+
+    public int OrdersYesterday { get; set; }
+
+    public decimal NewUsersDeltaPercent { get; set; }
+
+    public decimal OrdersDeltaPercent { get; set; }
+
     public List<string> OrdersTrendLabels { get; set; } = new();
 
     public List<int> OrdersTrendSeries { get; set; } = new();

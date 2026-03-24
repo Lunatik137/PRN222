@@ -23,6 +23,7 @@ public class AdminDashboardController(CloneEbayDbContext dbContext) : Controller
 
         var nowUtc = DateTime.UtcNow;
         var todayUtc = nowUtc.Date;
+        var yesterdayUtc = todayUtc.AddDays(-1);
         var tomorrowUtc = todayUtc.AddDays(1);
 
         var totalUsers = await dbContext.Users.CountAsync(cancellationToken);
@@ -31,6 +32,8 @@ public class AdminDashboardController(CloneEbayDbContext dbContext) : Controller
         var totalRevenue = await dbContext.OrderTables.SumAsync(o => o.totalPrice ?? 0m, cancellationToken);
         var newUsersToday = await dbContext.Users.CountAsync(u => u.createdAt >= todayUtc && u.createdAt < tomorrowUtc, cancellationToken);
         var ordersToday = await dbContext.OrderTables.CountAsync(o => o.orderDate >= todayUtc && o.orderDate < tomorrowUtc, cancellationToken);
+        var newUsersYesterday = await dbContext.Users.CountAsync(u => u.createdAt >= yesterdayUtc && u.createdAt < todayUtc, cancellationToken);
+        var ordersYesterday = await dbContext.OrderTables.CountAsync(o => o.orderDate >= yesterdayUtc && o.orderDate < todayUtc, cancellationToken);
 
         var ordersTrendStart = todayUtc.AddDays(-6);
         var ordersTrendRaw = await dbContext.OrderTables
@@ -182,6 +185,10 @@ public class AdminDashboardController(CloneEbayDbContext dbContext) : Controller
             TotalRevenue = totalRevenue,
             NewUsersToday = newUsersToday,
             OrdersToday = ordersToday,
+            NewUsersYesterday = newUsersYesterday,
+            OrdersYesterday = ordersYesterday,
+            NewUsersDeltaPercent = CalculateDeltaPercent(newUsersToday, newUsersYesterday),
+            OrdersDeltaPercent = CalculateDeltaPercent(ordersToday, ordersYesterday),
             OrdersTrendLabels = ordersTrendLabels,
             OrdersTrendSeries = ordersTrendSeries,
             NewUsersLabels = newUsersLabels,
@@ -224,5 +231,15 @@ public class AdminDashboardController(CloneEbayDbContext dbContext) : Controller
         }
 
         return $"{Math.Max(1, (int)diff.TotalDays)} days ago";
+    }
+
+    private static decimal CalculateDeltaPercent(int today, int yesterday)
+    {
+        if (yesterday <= 0)
+        {
+            return today <= 0 ? 0m : 100m;
+        }
+
+        return decimal.Round(((today - yesterday) * 100m) / yesterday, 1);
     }
 }

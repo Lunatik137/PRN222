@@ -10,6 +10,11 @@
     var ordersMax = Math.Max(1, Model.OrdersTrendSeries.DefaultIfEmpty(0).Max());
     var usersMax = Math.Max(1, Model.NewUsersSeries.DefaultIfEmpty(0).Max());
 
+    var usersDeltaClass = Model.NewUsersDeltaPercent >= 0 ? "delta-up" : "delta-down";
+    var ordersDeltaClass = Model.OrdersDeltaPercent >= 0 ? "delta-up" : "delta-down";
+    var usersDeltaSign = Model.NewUsersDeltaPercent >= 0 ? "+" : string.Empty;
+    var ordersDeltaSign = Model.OrdersDeltaPercent >= 0 ? "+" : string.Empty;
+
     var donutPalette = new[] { "#5b44d6", "#8d7bff", "#b4a7ff", "#ddd6ff" };
     var donutStops = new List<string>();
     decimal donutCursor = 0m;
@@ -38,7 +43,6 @@
                     <p class="hub-subtitle mb-0">Overview of live system statistics</p>
                 </div>
                 <div class="hub-header-actions">
-                    <button type="button" class="btn btn-outline-hub btn-sm" disabled>Export Report (Coming soon)</button>
                     <div class="hub-user small text-muted">Signed in as <strong>@username</strong></div>
                 </div>
             </header>
@@ -57,6 +61,7 @@
                             </div>
                             <h2 class="hub-kpi-value mb-0">@Model.TotalUsers.ToString("N0")</h2>
                             <small class="hub-kpi-note">New today: @Model.NewUsersToday.ToString("N0")</small>
+                            <small class="hub-kpi-note @usersDeltaClass">vs yesterday (@Model.NewUsersYesterday.ToString("N0")): @usersDeltaSign@Model.NewUsersDeltaPercent.ToString("0.#")%</small>
                         </div>
                     </article>
                 </div>
@@ -91,6 +96,7 @@
                             </div>
                             <h2 class="hub-kpi-value mb-0">@Model.TotalOrders.ToString("N0")</h2>
                             <small class="hub-kpi-note">Orders today: @Model.OrdersToday.ToString("N0")</small>
+                            <small class="hub-kpi-note @ordersDeltaClass">vs yesterday (@Model.OrdersYesterday.ToString("N0")): @ordersDeltaSign@Model.OrdersDeltaPercent.ToString("0.#")%</small>
                         </div>
                     </article>
                 </div>
@@ -102,7 +108,6 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">Orders Trend (Last 7 Days)</h3>
-                                <span class="badge hub-badge">Live</span>
                             </div>
                             <div class="hub-trend-list mt-3">
                                 @for (var i = 0; i < Model.OrdersTrendSeries.Count; i++)
@@ -127,14 +132,16 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">New Users (Last 6 Months)</h3>
-                                <span class="badge hub-badge">Live</span>
                             </div>
                             <div class="hub-bar-chart mt-3" aria-hidden="true">
                                 @for (var i = 0; i < Model.NewUsersSeries.Count; i++)
                                 {
                                     var value = Model.NewUsersSeries[i];
                                     var height = (int)Math.Round((value * 100d) / usersMax);
-                                    <span style="height:@Math.Max(height, value > 0 ? 8 : 0)%" title="@Model.NewUsersLabels[i]: @value"></span>
+                                    <div class="hub-bar-item" title="@Model.NewUsersLabels[i]: @value">
+                                        <small class="bar-value">@value</small>
+                                        <span style="height:@Math.Max(height, value > 0 ? 8 : 0)%"></span>
+                                    </div>
                                 }
                             </div>
                             <div class="hub-axis-labels">
@@ -152,7 +159,6 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">Category Distribution</h3>
-                                <span class="badge hub-badge">Live</span>
                             </div>
                             <div class="hub-donut-wrap">
                                 <div class="hub-donut" aria-hidden="true" style="background: conic-gradient(@string.Join(", ", donutStops));"></div>
@@ -177,7 +183,6 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">Recent Activities</h3>
-                                <span class="badge hub-badge">Live</span>
                             </div>
                             <ul class="hub-list list-unstyled mb-0 mt-2">
                                 @foreach (var item in Model.RecentActivities)
@@ -206,7 +211,6 @@
                         <div class="card-body">
                             <div class="hub-panel-head">
                                 <h3 class="h5 mb-0">Admin Alerts</h3>
-                                <span class="badge hub-badge">Live</span>
                             </div>
                             <div class="table-responsive mt-2">
                                 <table class="table table-sm align-middle mb-0 hub-alert-table">
@@ -341,6 +345,16 @@
         color: #8d88a8;
         font-size: .76rem;
         font-weight: 500;
+        display: block;
+        margin-top: 4px;
+    }
+
+    .delta-up {
+        color: #1f8f4d;
+    }
+
+    .delta-down {
+        color: #c62828;
     }
 
     .hub-icon {
@@ -427,10 +441,28 @@
         background: #faf9ff;
     }
 
-    .hub-bar-chart span {
+    .hub-bar-item {
         flex: 1;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .hub-bar-item span {
+        display: block;
+        width: 100%;
+        flex: 0 0 auto;
         border-radius: 8px 8px 0 0;
         background: linear-gradient(180deg, #7b61ff 0%, #5b44d6 100%);
+    }
+
+    .bar-value {
+        color: #5f5a7d;
+        font-size: .72rem;
+        text-align: center;
+        font-weight: 600;
     }
 
     .hub-axis-labels {
