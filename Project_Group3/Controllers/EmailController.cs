@@ -3,22 +3,12 @@ using System.Net.Mail;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
+using Project_Group3.Security;
 
 namespace Project_Group3.Controllers;
 
 public class EmailController(CloneEbayDbContext dbContext, IConfiguration configuration, ILogger<EmailController> logger) : Controller
 {
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor"
-    };
-
-    private static readonly List<string> TargetRoles =
-    [
-        "All", "Buyer", "Seller", "SuperAdmin", "Monitor", "Support", "Ops"
-    ];
-
     [HttpGet]
     public IActionResult Send()
     {
@@ -27,7 +17,7 @@ public class EmailController(CloneEbayDbContext dbContext, IConfiguration config
             return RedirectToAction("Login", "Account");
         }
 
-        ViewBag.Roles = TargetRoles;
+        ViewBag.Roles = GetAvailableTargetRoles();
         ViewBag.Recipients = new List<User>();
         ViewBag.RecipientCount = 0;
         return View(new EmailRequest());
@@ -42,11 +32,13 @@ public class EmailController(CloneEbayDbContext dbContext, IConfiguration config
             return RedirectToAction("Login", "Account");
         }
 
-        ViewBag.Roles = TargetRoles;
+        var availableTargetRoles = GetAvailableTargetRoles();
+        ViewBag.Roles = availableTargetRoles;
 
-        if (string.IsNullOrWhiteSpace(request.ToRole))
+        if (string.IsNullOrWhiteSpace(request.ToRole)
+            || !availableTargetRoles.Contains(request.ToRole.Trim(), StringComparer.OrdinalIgnoreCase))
         {
-            TempData["Message"] = "Vui lòng chọn nhóm người nhận.";
+            TempData["Message"] = "You do not have permission to send email to that target group.";
             TempData["MessageType"] = "error";
             ViewBag.Recipients = new List<User>();
             ViewBag.RecipientCount = 0;
@@ -179,13 +171,8 @@ public class EmailController(CloneEbayDbContext dbContext, IConfiguration config
     }
 
     private bool HasAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessEmailSystem);
 
-        return userId is not null
-            && AllowedRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
+    private List<string> GetAvailableTargetRoles()
+        => AdminPermissions.GetAllowedEmailTargets(HttpContext.GetCurrentRole()).ToList();
 }

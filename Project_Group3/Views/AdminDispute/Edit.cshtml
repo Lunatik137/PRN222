@@ -1,4 +1,9 @@
-﻿@model Dispute
+@model Dispute
+@using Microsoft.AspNetCore.Http
+@{
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var canFinalizeDisputes = AdminPermissions.CanFinalizeDisputes(role);
+}
 
 <h3 class="mb-4">Update Dispute</h3>
 
@@ -6,28 +11,32 @@
     <div class="card-body">
 
         <form method="post" asp-action="Update">
-
+            @Html.AntiForgeryToken()
             <input type="hidden" name="id" value="@Model.id" />
 
             <div class="mb-3">
                 <label>Status</label>
 
                 <select name="status" class="form-select">
-
                     <option value="PENDING" selected="@(Model.status=="PENDING")">Pending</option>
                     <option value="IN_PROGRESS" selected="@(Model.status=="IN_PROGRESS")">Processing</option>
-                    <option value="RESOLVED" selected="@(Model.status=="RESOLVED")">Resolved</option>
-                    <option value="REJECTED" selected="@(Model.status=="REJECTED")">Rejected</option>
-
+                    @if (canFinalizeDisputes)
+                    {
+                        <option value="RESOLVED" selected="@(Model.status=="RESOLVED")">Resolved</option>
+                        <option value="REJECTED" selected="@(Model.status=="REJECTED")">Rejected</option>
+                    }
                 </select>
             </div>
 
             <div class="mb-3">
                 <label>Resolution</label>
-                <textarea name="resolution" class="form-control">
-                    @Model.resolution
-</textarea>
+                <textarea name="resolution" class="form-control">@Model.resolution</textarea>
             </div>
+
+            @if (!canFinalizeDisputes)
+            {
+                <div class="alert alert-info">Support can process disputes but only superadmin can make the final decision.</div>
+            }
 
             <button class="btn btn-primary">Update</button>
 

@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project_Group3.Models;
+using Project_Group3.Security;
 
 namespace Project_Group3.Controllers;
 
@@ -14,16 +15,10 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     private const int DeleteReportThreshold = 3;
     private const int SellerAutoLockRiskThreshold = 100;
 
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor"
-    };
-
     [HttpGet("products")]
     public async Task<IActionResult> GetProducts([FromQuery] string? status, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanAccessProductModeration())
         {
             return Unauthorized(new { message = "Admin 2FA verification is required." });
         }
@@ -53,7 +48,7 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("products/{id:int}/report")]
     public async Task<IActionResult> ReportProduct(int id, [FromBody] ModerateProductApiRequest request, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanProcessProductModeration())
         {
             return Unauthorized(new { message = "Admin 2FA verification is required." });
         }
@@ -73,7 +68,7 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("products/{id:int}/hide")]
     public async Task<IActionResult> HideProduct(int id, [FromBody] ModerateProductApiRequest request, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return Unauthorized(new { message = "Admin 2FA verification is required." });
         }
@@ -98,7 +93,7 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("products/{id:int}/delete")]
     public async Task<IActionResult> DeleteProduct(int id, [FromBody] ModerateProductApiRequest request, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return Unauthorized(new { message = "Admin 2FA verification is required." });
         }
@@ -135,7 +130,7 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
     [HttpPost("users/{sellerId:int}/lock")]
     public async Task<IActionResult> LockSeller(int sellerId, [FromBody] LockSellerApiRequest request, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return Unauthorized(new { message = "Admin 2FA verification is required." });
         }
@@ -154,16 +149,14 @@ public class AdminProductManagementController(CloneEbayDbContext dbContext) : Co
         return Ok(new { message = $"Seller #{sellerId} locked." });
     }
 
-    private bool HasAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+    private bool CanAccessProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessProductModeration);
 
-        return userId is not null
-            && AllowedRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
+    private bool CanProcessProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanProcessProductModeration);
+
+    private bool CanPerformFullProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanPerformFullProductModeration);
 
     private static void ApplyRiskScore(User? seller, int delta, string reason)
     {

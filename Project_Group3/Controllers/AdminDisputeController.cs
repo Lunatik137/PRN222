@@ -1,19 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Security;
 
 namespace Project_Group3.Controllers;
 
 public class AdminDisputeController(IDisputeRepository repo) : Controller
 {
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor"
-    };
-
     public IActionResult IndexDispute()
     {
-        if (!HasAdminAccess())
+        if (!CanAccessDisputes())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -24,7 +19,7 @@ public class AdminDisputeController(IDisputeRepository repo) : Controller
 
     public IActionResult Details(int id)
     {
-        if (!HasAdminAccess())
+        if (!CanAccessDisputes())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -35,7 +30,7 @@ public class AdminDisputeController(IDisputeRepository repo) : Controller
 
     public IActionResult Edit(int id)
     {
-        if (!HasAdminAccess())
+        if (!CanProcessDisputes())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -45,15 +40,30 @@ public class AdminDisputeController(IDisputeRepository repo) : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Update(int id, string status, string resolution)
     {
-        if (!HasAdminAccess())
+        if (!CanProcessDisputes())
         {
             return RedirectToAction("Login", "Account");
         }
 
         var dispute = repo.GetById(id);
-        if (dispute.status == "RESOLVED")
+        if (dispute is null)
+        {
+            return NotFound();
+        }
+
+        if (!CanFinalizeDisputes()
+            && (string.Equals(status, "RESOLVED", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(status, "REJECTED", StringComparison.OrdinalIgnoreCase)))
+        {
+            TempData["Message"] = "Only superadmin can make the final dispute decision.";
+            TempData["MessageType"] = "error";
+            return RedirectToAction("Details", new { id });
+        }
+
+        if (string.Equals(dispute.status, "RESOLVED", StringComparison.OrdinalIgnoreCase))
         {
             return RedirectToAction("Details", new { id });
         }
@@ -62,14 +72,12 @@ public class AdminDisputeController(IDisputeRepository repo) : Controller
         return RedirectToAction("Details", new { id });
     }
 
-    private bool HasAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+    private bool CanAccessDisputes()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessDisputes);
 
-        return userId is not null
-            && AllowedRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
+    private bool CanProcessDisputes()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanProcessDisputes);
+
+    private bool CanFinalizeDisputes()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanFinalizeDisputes);
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Security;
 
 namespace Project_Group3.Controllers;
 
@@ -13,10 +14,11 @@ public class AdminReviewFeedbackController : Controller
         this.reviewRepository = reviewRepository;
         this.feedbackRepository = feedbackRepository;
     }
+
     [HttpGet]
     public async Task<IActionResult> ReviewsFeedback(int? ratingFilter, string? keyword, string? sellerIdSearch, string? statusFilter, int page = 1, int pageSize = 6, string tab = "reviews")
     {
-        if (HttpContext.Session.GetInt32("UserId") is null) return RedirectToAction("Login", "Account");
+        if (!CanAccessReviewsFeedback()) return RedirectToAction("Login", "Account");
 
         int[] allowedSizes = { 6, 10, 20 };
         if (!allowedSizes.Contains(pageSize)) pageSize = 6;
@@ -24,6 +26,8 @@ public class AdminReviewFeedbackController : Controller
         ViewBag.CurrentTab = tab;
         ViewBag.PageSize = pageSize;
         ViewBag.SellerIdSearch = sellerIdSearch;
+        ViewBag.CanProcessReviews = CanProcessReviewsFeedback();
+        ViewBag.CanDeleteReviews = CanDeleteReviewsFeedback();
 
         if (tab == "sellers")
         {
@@ -50,6 +54,11 @@ public class AdminReviewFeedbackController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateReviewStatus(int id, string newStatus)
     {
+        if (!CanProcessReviewsFeedback())
+        {
+            return RedirectToAction(nameof(ReviewsFeedback));
+        }
+
         var allowedStatuses = new[] { "Approved", "Rejected", "Hidden", "Deleted", "Show" };
         if (!allowedStatuses.Contains(newStatus))
         {
@@ -57,11 +66,17 @@ public class AdminReviewFeedbackController : Controller
             return RedirectToAction(nameof(ReviewsFeedback));
         }
 
+        if (string.Equals(newStatus, "Deleted", StringComparison.OrdinalIgnoreCase) && !CanDeleteReviewsFeedback())
+        {
+            TempData["ErrorMessage"] = "Only superadmin can permanently delete reviews.";
+            return RedirectToAction(nameof(ReviewsFeedback));
+        }
+
         bool success;
         if (newStatus == "Deleted")
         {
             success = await reviewRepository.DeleteReviewAsync(id);
-            if (success) 
+            if (success)
             {
                 TempData["SuccessMessage"] = "Review permanently ";
                 TempData["ActionStatus"] = "Deleted";
@@ -70,7 +85,7 @@ public class AdminReviewFeedbackController : Controller
         else
         {
             success = await reviewRepository.UpdateStatusAsync(id, newStatus);
-            if (success) 
+            if (success)
             {
                 TempData["SuccessMessage"] = "Review marked as ";
                 TempData["ActionStatus"] = newStatus;
@@ -80,4 +95,13 @@ public class AdminReviewFeedbackController : Controller
         if (!success) TempData["ErrorMessage"] = "Action failed.";
         return RedirectToAction(nameof(ReviewsFeedback));
     }
+
+    private bool CanAccessReviewsFeedback()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessReviewsFeedback);
+
+    private bool CanProcessReviewsFeedback()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanProcessReviewsFeedback);
+
+    private bool CanDeleteReviewsFeedback()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanDeleteReviewsFeedback);
 }

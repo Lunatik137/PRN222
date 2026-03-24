@@ -1,4 +1,14 @@
-﻿@model Dispute
+@model Dispute
+@using Microsoft.AspNetCore.Http
+@{
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var canProcessDisputes = AdminPermissions.CanProcessDisputes(role);
+}
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert @(TempData["MessageType"]?.ToString() == "error" ? "alert-danger" : "alert-success")">@message</div>
+}
 
 <h3 class="mb-4">Dispute Details</h3>
 
@@ -49,8 +59,7 @@
 </div>
 
 <div class="d-flex gap-2">
-
-    @if (Model.status != "RESOLVED")
+    @if (canProcessDisputes && Model.status != "RESOLVED")
     {
         <a href="/AdminDispute/Edit/@Model.id"
            class="btn btn-primary">
@@ -60,7 +69,6 @@
 
     <a href="/AdminDispute/IndexDispute"
        class="btn btn-secondary">
-        ← Back
+        ? Back
     </a>
-
 </div>

@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Security;
 using Project_Group3.Services;
+
 namespace Project_Group3.Controllers
 {
     [ApiController]
@@ -20,13 +22,18 @@ namespace Project_Group3.Controllers
         [HttpGet("{id:int}")]
         public async Task<ActionResult<User>> GetById(int id, CancellationToken cancellationToken)
         {
+            if (!HasAdminAccess()) return Unauthorized();
+
             var user = await _userRepository.GetByIdAsync(id, cancellationToken);
             return user is null ? NotFound() : Ok(user);
         }
 
         [HttpGet("all")]
-        public Task<List<User>> GetAll(CancellationToken cancellationToken)
-            => _userRepository.GetUsersAsync(cancellationToken);
+        public async Task<ActionResult<List<User>>> GetAll(CancellationToken cancellationToken)
+        {
+            if (!HasAdminAccess()) return Unauthorized();
+            return Ok(await _userRepository.GetUsersAsync(cancellationToken));
+        }
 
         public sealed record LoginRequest(string Username, string Password);
 
@@ -45,6 +52,8 @@ namespace Project_Group3.Controllers
         [HttpGet("by-email")]
         public async Task<ActionResult<User>> GetByEmail([FromQuery] string email, CancellationToken cancellationToken)
         {
+            if (!HasAdminAccess()) return Unauthorized();
+
             var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
             return user is null ? NotFound() : Ok(user);
         }
@@ -52,6 +61,8 @@ namespace Project_Group3.Controllers
         [HttpGet("by-username")]
         public async Task<ActionResult<User>> GetByUsername([FromQuery] string username, CancellationToken cancellationToken)
         {
+            if (!HasAdminAccess()) return Unauthorized();
+
             var user = await _userRepository.GetByUsernameAsync(username, cancellationToken);
             return user is null ? NotFound() : Ok(user);
         }
@@ -65,6 +76,8 @@ namespace Project_Group3.Controllers
             [FromQuery] int pageSize = 20,
             CancellationToken cancellationToken = default)
         {
+            if (!HasAdminAccess()) return Unauthorized();
+
             if (page <= 0) page = 1;
             if (pageSize <= 0) pageSize = 20;
 
@@ -74,43 +87,69 @@ namespace Project_Group3.Controllers
 
         [HttpPost("approve/{id:int}")]
         public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
-            => await _userRepository.ApproveAsync(id, cancellationToken) ? NoContent() : NotFound();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.ApproveAsync(id, cancellationToken) ? NoContent() : NotFound();
+        }
 
         public sealed record LockRequest(string Reason);
 
         [HttpPost("reject/{id:int}")]
         public async Task<IActionResult> Reject(int id, [FromBody] LockRequest request, CancellationToken cancellationToken)
-            => await _userRepository.RejectAsync(id, request.Reason, cancellationToken) ? NoContent() : NotFound();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.RejectAsync(id, request.Reason, cancellationToken) ? NoContent() : NotFound();
+        }
 
         [HttpPost("lock/{id:int}")]
         public async Task<IActionResult> Lock(int id, [FromBody] LockRequest request, CancellationToken cancellationToken)
-            => await _userRepository.LockAsync(id, request.Reason, cancellationToken) ? NoContent() : NotFound();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.LockAsync(id, request.Reason, cancellationToken) ? NoContent() : NotFound();
+        }
 
         [HttpPost("unlock/{id:int}")]
         public async Task<IActionResult> Unlock(int id, CancellationToken cancellationToken)
-            => await _userRepository.UnlockAsync(id, cancellationToken) ? NoContent() : NotFound();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.UnlockAsync(id, cancellationToken) ? NoContent() : NotFound();
+        }
 
         public sealed record TwoFactorEnableRequest(string Secret, string RecoveryCodes);
 
         [HttpPost("2fa/enable/{id:int}")]
         public async Task<IActionResult> EnableTwoFactor(int id, [FromBody] TwoFactorEnableRequest request, CancellationToken cancellationToken)
-            => await _userRepository.EnableTwoFactorAsync(id, request.Secret, request.RecoveryCodes, cancellationToken) ? NoContent() : NotFound();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.EnableTwoFactorAsync(id, request.Secret, request.RecoveryCodes, cancellationToken) ? NoContent() : NotFound();
+        }
 
         [HttpPost("2fa/disable/{id:int}")]
         public async Task<IActionResult> DisableTwoFactor(int id, CancellationToken cancellationToken)
-            => await _userRepository.DisableTwoFactorAsync(id, cancellationToken) ? NoContent() : NotFound();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.DisableTwoFactorAsync(id, cancellationToken) ? NoContent() : NotFound();
+        }
 
         [HttpPost("2fa/recovery-codes/{id:int}")]
         public async Task<IActionResult> UpdateRecoveryCodes(int id, [FromBody] string recoveryCodes, CancellationToken cancellationToken)
-            => await _userRepository.UpdateRecoveryCodesAsync(id, recoveryCodes, cancellationToken) ? NoContent() : NotFound();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.UpdateRecoveryCodesAsync(id, recoveryCodes, cancellationToken) ? NoContent() : NotFound();
+        }
 
         [HttpGet("by-last-login-ip")]
-        public Task<List<User>> GetByLastLoginIp([FromQuery] string ipAddress, CancellationToken cancellationToken)
-            => _userRepository.GetUsersByLastLoginIpAsync(ipAddress, cancellationToken);
+        public async Task<ActionResult<List<User>>> GetByLastLoginIp([FromQuery] string ipAddress, CancellationToken cancellationToken)
+        {
+            if (!HasAdminAccess()) return Unauthorized();
+            return Ok(await _userRepository.GetUsersByLastLoginIpAsync(ipAddress, cancellationToken));
+        }
 
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] User user, CancellationToken cancellationToken)
         {
+            if (!CanEditUsers()) return Unauthorized();
+
             if (!string.IsNullOrWhiteSpace(user.password))
             {
                 user.password = _passwordHasherService.HashPassword(user.password);
@@ -141,6 +180,15 @@ namespace Project_Group3.Controllers
 
         [HttpPut("update")]
         public async Task<IActionResult> Update([FromBody] User user, CancellationToken cancellationToken)
-            => await _userRepository.UpdateUserAsync(user, cancellationToken) ? NoContent() : BadRequest();
+        {
+            if (!CanEditUsers()) return Unauthorized();
+            return await _userRepository.UpdateUserAsync(user, cancellationToken) ? NoContent() : BadRequest();
+        }
+
+        private bool HasAdminAccess()
+            => HttpContext.HasAdminPermission(AdminPermissions.CanAccessUserManagement);
+
+        private bool CanEditUsers()
+            => HttpContext.HasAdminPermission(AdminPermissions.CanEditUsers);
     }
 }

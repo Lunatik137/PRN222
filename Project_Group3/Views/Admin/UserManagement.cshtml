@@ -1,8 +1,10 @@
-﻿@model Project_Group3.Models.UserManagementViewModel
+@model Project_Group3.Models.UserManagementViewModel
 @using Microsoft.AspNetCore.Http
 @{
     ViewData["Title"] = "User Management";
     var username = Context.Session.GetString("Username") ?? "Admin";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var canEditUsers = AdminPermissions.CanEditUsers(role);
 }
 
 <div class="admin-page-wrapper">
@@ -17,6 +19,11 @@
                         <p>Hello @username. You can review accounts, lock or unlock users, and monitor RiskScore to keep the system safe.</p>
                     </div>
                 </header>
+
+                @if (!canEditUsers)
+                {
+                    <div class="alert alert-info">Your role has view-only access to user management.</div>
+                }
 
                 @if (TempData["ActionSuccess"] is string ok)
                 {
@@ -38,7 +45,6 @@
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
                             <select class="form-select" name="status">
-
                                 <option value="" selected="@(string.IsNullOrEmpty(Model.Status))">All</option>
                                 <option value="pending" selected="@(Model.Status == "pending")">Pending</option>
                                 <option value="approved" selected="@(Model.Status == "approved")">Approved</option>
@@ -48,7 +54,6 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-
                             <label class="form-label">Page Size</label>
                             <select class="form-select" name="pageSize">
                                 @foreach (var size in new[] { 10, 20, 50 })
@@ -59,7 +64,6 @@
                         </div>
                         <div class="col-md-2 d-grid">
                             <button class="btn btn-indigo" type="submit">Filter</button>
-
                         </div>
                     </div>
                     <input type="hidden" name="page" value="1" />
@@ -107,9 +111,13 @@
                                             </td>
                                             <td>@(u.lastLoginTimestamp?.ToString("yyyy-MM-dd HH:mm") ?? "N/A")</td>
                                             <td>
-                                                <div class="action-buttons user-actions">
-                                                    @if (!u.isApproved && !u.isLocked)
-                                                    {
+                                                @if (!canEditUsers)
+                                                {
+                                                    <span class="text-muted">View only</span>
+                                                }
+                                                else if (!u.isApproved && !u.isLocked)
+                                                {
+                                                    <div class="action-buttons user-actions">
                                                         <form method="post" asp-action="ApproveUser">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="id" value="@u.id" />
@@ -120,18 +128,21 @@
                                                             <button type="submit" class="btn btn-sm btn-indigo">Approve</button>
                                                         </form>
 
-                                                        <form method="post" asp-action="RejectUser" class="d-flex gap-2">
+                                                        <form method="post" asp-action="RejectUser" class="d-flex gap-2 mt-2">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="Id" value="@u.id" />
                                                             <input type="hidden" name="Keyword" value="@Model.Keyword" />
                                                             <input type="hidden" name="Status" value="@Model.Status" />
                                                             <input type="hidden" name="Page" value="@Model.Page" />
                                                             <input type="hidden" name="PageSize" value="@Model.PageSize" />
-                                                            <input class="form-control form-control-sm" name="Reason" placeholder="Rejection reason" required />                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                                            <input class="form-control form-control-sm" name="Reason" placeholder="Rejection reason" required />
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
                                                         </form>
-                                                    }
-                                                    else if (u.isLocked)
-                                                    {
+                                                    </div>
+                                                }
+                                                else if (u.isLocked)
+                                                {
+                                                    <div class="action-buttons user-actions">
                                                         <form method="post" asp-action="UnlockUser">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="id" value="@u.id" />
@@ -141,10 +152,12 @@
                                                             <input type="hidden" name="pageSize" value="@Model.PageSize" />
                                                             <button type="submit" class="btn btn-sm btn-outline-indigo">Unlock</button>
                                                         </form>
-                                                        <small class="text-muted">@u.lockedReason</small>
-                                                    }
-                                                    else
-                                                    {
+                                                        <small class="text-muted d-block mt-1">@u.lockedReason</small>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="action-buttons user-actions">
                                                         <form method="post" asp-action="LockUser" class="d-flex gap-2">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="Id" value="@u.id" />
@@ -152,10 +165,11 @@
                                                             <input type="hidden" name="Status" value="@Model.Status" />
                                                             <input type="hidden" name="Page" value="@Model.Page" />
                                                             <input type="hidden" name="PageSize" value="@Model.PageSize" />
-                                                            <input class="form-control form-control-sm" name="Reason" placeholder="Lock reason" required />                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Lock</button>
+                                                            <input class="form-control form-control-sm" name="Reason" placeholder="Lock reason" required />
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Lock</button>
                                                         </form>
-                                                    }
-                                                </div>
+                                                    </div>
+                                                }
                                             </td>
                                         </tr>
                                     }
@@ -226,7 +240,7 @@
 
             connection.on("UserRegistered", (username) => {
                 const safeUsername = username || "Unknown";
-                notice.textContent = `Có tài khoản mới vừa đăng ký: ${safeUsername}. Trang sẽ tự động làm mới...`;
+                notice.textContent = `C� t�i kho?n m?i v?a dang k�: ${safeUsername}. Trang s? t? d?ng l�m m?i...`;
                 notice.classList.remove("d-none");
 
                 setTimeout(() => {
@@ -237,7 +251,7 @@
             });
 
             connection.start().catch((error) => {
-                console.error("Không thể kết nối realtime cho User Management:", error);
+                console.error("Kh�ng th? k?t n?i realtime cho User Management:", error);
             });
         })();
     </script>
