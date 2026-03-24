@@ -198,7 +198,7 @@ public class AdminDashboardController(CloneEbayDbContext dbContext) : Controller
             Alerts = alerts
         };
 
-        return View("~/Views/Admin/Dashboard.cshtml", vm);
+        return View("~/Views/AdminDashboard/Dashboard.cshtml", vm);
     }
 
     private bool HasAdminAccess()
