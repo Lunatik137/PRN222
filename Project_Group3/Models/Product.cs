@@ -25,6 +25,10 @@ public partial class Product
 
     public string? status { get; set; }
 
+    public string? reason { get; set; }
+
+    public int? reportnumber { get; set; }
+
     public virtual ICollection<Bid> Bids { get; set; } = new List<Bid>();
 
     public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();
