@@ -261,3 +261,31 @@
         </div>
     </footer>
 </div>
+@if (isBuyer)
+{
+    @section Scripts {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script>
+            (() => {
+                if (typeof signalR === "undefined") {
+                    return;
+                }
+
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/notificationHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.on("ProductStatusChanged", () => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("_rt", Date.now().toString());
+                    window.location.replace(url.toString());
+                });
+
+                connection.start().catch((error) => {
+                    console.error("Cannot initialize buyer realtime product updates:", error);
+                });
+            })();
+        </script>
+    }
+}

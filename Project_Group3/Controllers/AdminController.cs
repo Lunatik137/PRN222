@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
 using Project_Group3.Services;
@@ -11,7 +12,8 @@ public class AdminController(
     IUserRepository userRepository,
     CloneEbayDbContext dbContext,
     ILogger<AdminController> logger,
-    IPasswordHasherService passwordHasherService) : Controller
+    IPasswordHasherService passwordHasherService,
+    IHubContext<NotificationHub> notificationHub) : Controller
 {
     private const string ProductStatusActive = "active";
     private const string ProductStatusReported = "reported";
@@ -276,6 +278,11 @@ public class AdminController(
 
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await notificationHub.Clients.All.SendAsync(
+            "ProductStatusChanged",
+            product.id,
+            ProductStatusHidden,
+            cancellationToken);
 
         TempData["ActionSuccess"] = isAutoLocked
                     ? $"Product #{product.id} has been hidden. Seller was auto-locked by risk policy."
@@ -367,6 +374,11 @@ public class AdminController(
 
         product.status = ProductStatusActive;
         await dbContext.SaveChangesAsync(cancellationToken);
+        await notificationHub.Clients.All.SendAsync(
+            "ProductStatusChanged",
+            product.id,
+            ProductStatusActive,
+            cancellationToken);
 
         TempData["ActionSuccess"] = $"Product #{product.id} has been activated.";
         AppendProductModerationLog(new AdminActionLogItem
