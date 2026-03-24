@@ -38,12 +38,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Terraform Module ECR
-        id: ecr-repo
-        uses: ./.github/actions/terraform_ecr
-        with:
-          environment: ${{ inputs.environment }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1 
@@ -54,7 +48,7 @@ jobs:
         id: app-image
         uses: ./.github/actions/ecr
         with:
-          ecr-repo: ${{ steps.ecr-repo.outputs.ecr-app-repo }}
+          ecr-repo: "863700943489.dkr.ecr.us-east-1.amazonaws.com/cicd-lab-app-repo"
           working-directory: './Project_Group3'
 
     outputs:
