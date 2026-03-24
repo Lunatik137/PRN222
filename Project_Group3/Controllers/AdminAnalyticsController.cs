@@ -40,7 +40,7 @@ public class AdminAnalyticsController(CloneEbayDbContext dbContext) : Controller
         var vm = CreateAnalyticsRequestModel(periodType, day, month, quarter, year);
         await PopulateAnalyticsAsync(vm, cancellationToken);
 
-        return View("~/Views/Admin/Analytics.cshtml", vm);
+        return View("~/Views/AdminAnalytics/Analytics.cshtml", vm);
     }
 
     [HttpGet]
