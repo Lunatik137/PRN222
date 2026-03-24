@@ -11,8 +11,7 @@ public class AdminController(
     IUserRepository userRepository,
     CloneEbayDbContext dbContext,
     ILogger<AdminController> logger,
-    IPasswordHasherService passwordHasherService,
-    IProductReportTracker productReportTracker) : Controller
+    IPasswordHasherService passwordHasherService) : Controller
 {
     private const string ProductStatusActive = "active";
     private const string ProductStatusReported = "reported";
@@ -175,30 +174,15 @@ public class AdminController(
            .Take(300)
            .ToListAsync(cancellationToken);
 
-        foreach (var product in products)
-        {
-            var combinedReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id);
-            if (combinedReportCount > 0
-                && string.Equals(product.status, ProductStatusActive, StringComparison.OrdinalIgnoreCase))
-            {
-                product.status = ProductStatusReported;
-            }
-        }
-
-        if (dbContext.ChangeTracker.HasChanges())
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-
         var moderationItems = products
-            .Where(product => NormalizeProductStatus(product.status) == normalizedStatus)
-          .Select(product => new ProductModerationItemViewModel
-            {
-                Product = product,
-                ReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id),
-                ReportReasons = GetReportReasons(product).Concat(productReportTracker.GetReasons(product.id)).ToList()
-            })
-            .ToList();
+          .Where(product => NormalizeProductStatus(product.status) == normalizedStatus)
+        .Select(product => new ProductModerationItemViewModel
+        {
+            Product = product,
+            ReportCount = GetReportCount(product),
+            ReportReasons = GetReportReasons(product)
+        })
+          .ToList();
 
         var vm = new ProductModerationViewModel
         {
@@ -711,7 +695,7 @@ public class AdminController(
     }
 
     private static int GetReportCount(Product product)
-         => Math.Max(product.reportnumber ?? 0, product.Reviews.Count(r => (r.rating ?? 0) <= 2));
+         => product.reportnumber ?? 0;
 
     private static IReadOnlyList<string> GetReportReasons(Product product)
     {
