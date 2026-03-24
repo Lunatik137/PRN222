@@ -218,7 +218,10 @@
                                 {
                                     <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
                                 }
-                                <a asp-controller="Admin" asp-action="ComplaintsDisputes" class="btn btn-hub-outline">View complaints</a>                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Monitor system health</a>
+                                <a asp-controller="Admin" asp-action="ComplaintsDisputes" class="btn btn-hub-outline">View complaints</a>
+                                <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="btn btn-hub-outline">Approve return requests</a>
+                                <a asp-controller="Email" asp-action="Send" class="btn btn-hub-outline">Send system warning email</a>
+                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Monitor system health</a>
                             </div>
                         </div>
                     </article>

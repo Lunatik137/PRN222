@@ -14,7 +14,7 @@ public sealed class UserRepository(CloneEbayDbContext dbContext) : IUserReposito
 
     public Task<User?> GetByCredentialsAsync(string username, string password, CancellationToken cancellationToken = default)
         => dbContext.Users.FirstOrDefaultAsync(
-            u => u.username == username && u.password == password,
+            u => (u.username == username || u.email == username) && u.password == password,
             cancellationToken);
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)

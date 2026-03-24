@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using System.Net.Mail;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Project_Group3.Hubs;
 using Project_Group3.Models;
@@ -7,7 +10,9 @@ using Project_Group3.Repository.Interfaces;
 namespace Project_Group3.Controllers;
 public class AccountController(
     IUserRepository userRepository,
-    IHubContext<AdminNotificationHub> adminNotificationHub) : Controller
+    IHubContext<AdminNotificationHub> adminNotificationHub,
+    IConfiguration configuration,
+    ILogger<AccountController> logger) : Controller
 {
     private const string PendingAdminUserIdSessionKey = "PendingAdminUserId";
     private const string PendingAdminUsernameSessionKey = "PendingAdminUsername";
@@ -17,7 +22,8 @@ public class AccountController(
     private static readonly HashSet<string> AdminRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         "superadmin",
-        "monitor"
+        "monitor",
+        "support"
     };
 
     private static readonly HashSet<string> AllowedRegisterRoles = new(StringComparer.OrdinalIgnoreCase)
@@ -77,9 +83,30 @@ public class AccountController(
                 return RedirectToAction("Index", "Home");
             }
 
-            if (user.isTwoFactorEnabled != true || string.IsNullOrWhiteSpace(user.twoFactorSecret))
+            if (user.isTwoFactorEnabled != true)
             {
                 ModelState.AddModelError(string.Empty, "Admin account must enable 2FA before accessing Admin panel.");
+                return View(model);
+            }
+
+            if (string.IsNullOrWhiteSpace(user.email))
+            {
+                ModelState.AddModelError(string.Empty, "Your account does not have an email. Please contact superadmin.");
+                return View(model);
+            }
+
+            user.twoFactorSecret = GenerateTwoFactorCode();
+            var savedCode = await userRepository.UpdateUserAsync(user, CancellationToken.None);
+            if (!savedCode)
+            {
+                ModelState.AddModelError(string.Empty, "Cannot create 2FA verification code. Please try again.");
+                return View(model);
+            }
+
+            var mailSent = await SendTwoFactorCodeEmailAsync(user.email, user.username ?? model.Username, user.twoFactorSecret);
+            if (!mailSent)
+            {
+                ModelState.AddModelError(string.Empty, "Cannot send 2FA code to your email. Please try again later.");
                 return View(model);
             }
 
@@ -146,11 +173,16 @@ public class AccountController(
         HttpContext.Session.SetString("Username", user.username ?? HttpContext.Session.GetString(PendingAdminUsernameSessionKey) ?? string.Empty);
         HttpContext.Session.SetString("Role", user.role ?? HttpContext.Session.GetString(PendingAdminRoleSessionKey) ?? string.Empty);
         HttpContext.Session.SetString(AdminTwoFactorVerifiedSessionKey, "true");
+        user.twoFactorSecret = null;
+        await userRepository.UpdateUserAsync(user, CancellationToken.None);
 
         ClearPendingAdminTwoFactorSession();
 
         TempData["LoginMessage"] = $"Hello, {user.username}!";
-        return RedirectToAction("Dashboard", "AdminDashboard");
+        return string.Equals(user.role, "superadmin", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(user.role, "monitor", StringComparison.OrdinalIgnoreCase)
+            ? RedirectToAction("Dashboard", "AdminDashboard")
+            : RedirectToAction("SystemSettings", "Admin");
     }
 
     [HttpGet]
@@ -249,5 +281,60 @@ public class AccountController(
         HttpContext.Session.Remove(PendingAdminUserIdSessionKey);
         HttpContext.Session.Remove(PendingAdminUsernameSessionKey);
         HttpContext.Session.Remove(PendingAdminRoleSessionKey);
+    }
+
+    private static string GenerateTwoFactorCode()
+        => RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+
+    private async Task<bool> SendTwoFactorCodeEmailAsync(string toEmail, string username, string code)
+    {
+        try
+        {
+            var simulate = configuration.GetValue<bool>("EmailSettings:SimulateEmailSending");
+            if (simulate)
+            {
+                logger.LogInformation("[Simulate2FA] To={To} | Username={Username} | Code={Code}", toEmail, username, code);
+                return true;
+            }
+
+            var host = configuration["EmailSettings:SmtpHost"];
+            var port = configuration.GetValue<int?>("EmailSettings:SmtpPort") ?? 587;
+            var smtpUser = configuration["EmailSettings:SmtpUser"];
+            var smtpPassword = configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = configuration["EmailSettings:SenderEmail"];
+            var senderName = configuration["EmailSettings:SenderName"] ?? "CloneEbay System";
+
+            if (string.IsNullOrWhiteSpace(host)
+                || string.IsNullOrWhiteSpace(smtpUser)
+                || string.IsNullOrWhiteSpace(smtpPassword)
+                || string.IsNullOrWhiteSpace(senderEmail))
+            {
+                logger.LogWarning("EmailSettings are missing, cannot send admin 2FA code.");
+                return false;
+            }
+
+            using var smtp = new SmtpClient(host, port)
+            {
+                Credentials = new NetworkCredential(smtpUser, smtpPassword),
+                EnableSsl = true
+            };
+
+            using var mail = new MailMessage
+            {
+                From = new MailAddress(senderEmail, senderName),
+                Subject = "CloneEbay Admin 2FA verification code",
+                Body = $"Hello {WebUtility.HtmlEncode(username)},<br/>Your admin 2FA code is: <b>{WebUtility.HtmlEncode(code)}</b><br/>This code is required to complete login.",
+                IsBodyHtml = true
+            };
+            mail.To.Add(toEmail);
+
+            await smtp.SendMailAsync(mail);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send admin 2FA code to {ToEmail}", toEmail);
+            return false;
+        }
     }
 }

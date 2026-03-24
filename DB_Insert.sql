@@ -156,6 +156,27 @@ VALUES
 (2, 9, N'Chào mừng shop mới, hãy tuân thủ chính sách đăng bán.', DATEADD(DAY,-2,GETDATE())),
 (3, 10, N'Tranh chấp đơn hàng #5 đã được ghi nhận và đang xử lý.', DATEADD(HOUR,-12,GETDATE()));
 
+-- ORDER
+INSERT INTO OrderTable (buyerId, addressId, orderDate, totalPrice, status)
+VALUES
+(6, 1, GETDATE(), 300, 'PENDING'),
+(6, 1, GETDATE(), 450, 'SHIPPING'),
+(6, 1, GETDATE(), 1200, 'DELIVERED');
+
+-- ORDER ITEM
+INSERT INTO OrderItem (orderId, productId, quantity, unitPrice)
+VALUES
+(1, 2, 1, 1200),
+(2, 3, 1, 500),
+(3, 1, 2, 200);
+
+-- DISPUTE
+INSERT INTO Dispute (orderId, raisedBy, description, status, resolution)
+VALUES
+(1, 2, N'Sản phẩm bị lỗi khi nhận', 'PENDING', NULL),
+(2, 3, N'Không nhận được hàng', 'PENDING', NULL),
+(3, 2, N'Yêu cầu hoàn tiền', 'RESOLVED', N'Đã hoàn tiền cho khách');
+
 COMMIT TRANSACTION;
 END TRY
 BEGIN CATCH
