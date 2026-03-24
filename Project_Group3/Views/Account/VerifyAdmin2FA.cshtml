@@ -1,0 +1,32 @@
+﻿@model Project_Group3.Models.AdminTwoFactorViewModel
+
+@{
+    ViewData["Title"] = "Admin 2FA Verification";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h2 class="mb-4">Admin 2FA Verification</h2>
+
+        <div class="alert alert-info">
+            Enter the 6-digit code sent to your registered email to continue to the Admin panel.
+        </div>
+
+        <form asp-action="VerifyAdmin2FA" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" autocomplete="one-time-code" />
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Verify</button>
+            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary ms-2">Back to login</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

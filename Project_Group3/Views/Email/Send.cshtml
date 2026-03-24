@@ -1,0 +1,98 @@
+@model Project_Group3.Models.EmailRequest
+@{
+    ViewData["Title"] = "Gửi email cảnh báo / thông báo hệ thống";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var roles = ViewBag.Roles as List<string> ?? [];
+    var recipients = ViewBag.Recipients as List<Project_Group3.Models.User> ?? [];
+    var recipientCount = ViewBag.RecipientCount is int c ? c : recipients.Count;
+
+    string RoleLabel(string role) => role switch
+    {
+        "All" => "Tất cả người dùng",
+        "Buyer" => "Buyer",
+        "Seller" => "Seller",
+        "SuperAdmin" => "SuperAdmin",
+        "Monitor" => "Monitor",
+        "Support" => "Support",
+        "Ops" => "Ops",
+        _ => role
+    };
+}
+
+<div class="container-fluid px-0">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">@ViewData["Title"]</h4>
+        </div>
+        <div class="card-body">
+            @if (TempData["Message"] is not null)
+            {
+                <div class="alert @(TempData["MessageType"]?.ToString() == "error" ? "alert-danger" : "alert-success") alert-dismissible fade show">
+                    @TempData["Message"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form asp-action="Send" method="post">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label asp-for="ToRole" class="form-label fw-semibold">Nhóm người nhận</label>
+                    <select asp-for="ToRole" class="form-select" required>
+                        <option value="">-- Chọn nhóm --</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role">@RoleLabel(role)</option>
+                        }
+                    </select>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model?.ToRole))
+                {
+                    <div class="alert alert-info">
+                        Nhóm <strong>@RoleLabel(Model.ToRole)</strong> có <strong>@recipientCount</strong> người nhận.
+                    </div>
+                }
+
+                @if (recipients.Any())
+                {
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in recipients)
+                                {
+                                    <tr>
+                                        <td>@user.username</td>
+                                        <td>@user.email</td>
+                                        <td>@user.role</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <label asp-for="Subject" class="form-label fw-semibold">Tiêu đề</label>
+                    <input asp-for="Subject" class="form-control" maxlength="200" required />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Body" class="form-label fw-semibold">Nội dung</label>
+                    <textarea asp-for="Body" class="form-control" rows="8" required></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" name="actionType" value="Preview" class="btn btn-outline-primary">Xem danh sách người nhận</button>
+                    <button type="submit" name="actionType" value="Send" class="btn btn-primary" onclick="return confirm('Xác nhận gửi email?');">Gửi email</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

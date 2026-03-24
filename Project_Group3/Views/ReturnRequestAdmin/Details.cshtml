@@ -1,0 +1,79 @@
+@model Project_Group3.ViewModel.ReturnRequestAdminDetailsViewModel
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu hoàn trả";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-0">
+    @if (TempData["Message"] is not null)
+    {
+        <div class="alert @(TempData["MessageType"]?.ToString() == "error" ? "alert-danger" : "alert-success") alert-dismissible fade show">
+            @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">@ViewData["Title"] #@Model.ReturnRequestId</h4>
+        <a asp-action="Index" class="btn btn-outline-secondary">Quay lại danh sách</a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">Nội dung yêu cầu</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Trạng thái hoàn trả</dt>
+                        <dd class="col-sm-8"><strong>@Model.ReturnStatus</strong></dd>
+                        <dt class="col-sm-4">Ngày tạo</dt>
+                        <dd class="col-sm-8">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</dd>
+                        <dt class="col-sm-4">Lý do</dt>
+                        <dd class="col-sm-8">@Model.Reason</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">Đơn hàng</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-sm-5">OrderId</dt>
+                        <dd class="col-sm-7">@Model.OrderId</dd>
+                        <dt class="col-sm-5">OrderStatus</dt>
+                        <dd class="col-sm-7">@Model.OrderStatus</dd>
+                        <dt class="col-sm-5">OrderDate</dt>
+                        <dd class="col-sm-7">@Model.OrderDate?.ToString("dd/MM/yyyy HH:mm")</dd>
+                        <dt class="col-sm-5">Total</dt>
+                        <dd class="col-sm-7">@Model.OrderTotal?.ToString("N0")</dd>
+                        <dt class="col-sm-5">Buyer</dt>
+                        <dd class="col-sm-7">@Model.BuyerUsername</dd>
+                        <dt class="col-sm-5">Email</dt>
+                        <dd class="col-sm-7">@Model.BuyerEmail</dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (Model.CanProcess)
+            {
+                <div class="card">
+                    <div class="card-header">Thao tác</div>
+                    <div class="card-body">
+                        <form asp-action="Approve" method="post" class="mb-2" onsubmit="return confirm('Duyệt yêu cầu này?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.ReturnRequestId" />
+                            <button type="submit" class="btn btn-success w-100">Duyệt</button>
+                        </form>
+                        <form asp-action="Reject" method="post" onsubmit="return confirm('Từ chối yêu cầu này?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.ReturnRequestId" />
+                            <button type="submit" class="btn btn-outline-danger w-100">Từ chối</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
