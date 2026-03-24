@@ -69,7 +69,7 @@ jobs:
 
       - name: Update Dockerrun.aws.json with commit SHA
         run: |
-          jq --arg tag "${GITHUB_SHA::7}" '
+          jq --arg tag "latest" '
             .Image.Name = (.Image.Name + ":" + $tag)
           ' Dockerrun.aws.json > tmp.json && mv tmp.json Dockerrun.aws.json
         working-directory: '.'
@@ -81,10 +81,10 @@ jobs:
           
           aws elasticbeanstalk create-application-version \
             --application-name PRN222 \
-            --version-label ${GITHUB_SHA::7} \
+            --version-label $GITHUB_SHA \
             --source-bundle S3Bucket="chienpq137-863700943489-us-east-1-an",S3Key="deployment.zip"
 
           aws elasticbeanstalk update-environment \
             --environment-name PRN222-env-1 \
-            --version-label ${GITHUB_SHA::7}
+            --version-label $GITHUB_SHA
         working-directory: '.'
