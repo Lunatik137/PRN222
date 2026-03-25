@@ -1,9 +1,11 @@
-@model Project_Group3.Models.ProductModerationViewModel
+﻿@model Project_Group3.Models.ProductModerationViewModel
 @using Microsoft.AspNetCore.Http
 @{
     ViewData["Title"] = "Product Moderation";
     var username = Context.Session.GetString("Username") ?? "SuperAdmin";
     var role = Context.Session.GetString("Role") ?? string.Empty;
+    var normalizedRole = role.Trim().ToLowerInvariant();
+    var normalizedUsername = username.Trim().ToLowerInvariant();
     var canProcessProductModeration = AdminPermissions.CanProcessProductModeration(role);
     var canPerformFullProductModeration = AdminPermissions.CanPerformFullProductModeration(role);
 }
@@ -246,6 +248,44 @@
                 const safeReporter = reporter || "Buyer";
                 const safeReason = reason || "No reason";
                 notice.textContent = `New buyer report: ${safeTitle} by ${safeReporter}. Reason: ${safeReason}. Reloading...`;
+                notice.classList.remove("d-none");
+
+                setTimeout(() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("_rt", Date.now().toString());
+                    window.location.replace(url.toString());
+                  }, 1200);
+            });
+
+            const currentRole = "@normalizedRole";
+            const currentUsername = "@normalizedUsername";
+            const shouldAutoReload = (actorRole, actorUsername) => {
+                const normalizedActorRole = (actorRole || "").toLowerCase();
+                const normalizedActorUsername = (actorUsername || "").toLowerCase();
+                if (normalizedActorUsername && normalizedActorUsername === currentUsername) {
+                    return false;
+                }
+
+                if (normalizedActorRole === "superadmin") {
+                    return currentRole === "support" || currentRole === "monitor";
+                }
+
+                if (normalizedActorRole === "support") {
+                    return currentRole === "superadmin";
+                }
+
+                return false;
+            };
+
+            connection.on("AdminCollabUpdated", (area, action, target, actorUsername, actorRole) => {
+                if (area !== "ProductModeration" || !shouldAutoReload(actorRole, actorUsername)) {
+                    return;
+                }
+
+                const safeActor = actorUsername || "Admin";
+                const safeAction = action || "updated";
+                const safeTarget = target || "product data";
+                notice.textContent = `${safeActor} vừa ${safeAction} (${safeTarget}). Auto reload to update ...`;
                 notice.classList.remove("d-none");
 
                 setTimeout(() => {
