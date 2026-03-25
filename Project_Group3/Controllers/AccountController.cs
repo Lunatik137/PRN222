@@ -70,6 +70,12 @@ public class AccountController(
 
             if (!AdminPermissions.IsAdminRole(user.role))
             {
+                if (!await UpdateLastLoginAsync(user, CancellationToken.None))
+                {
+                    ModelState.AddModelError(string.Empty, "Unable to save last login time. Please try again.");
+                    return View(model);
+                }
+
                 HttpContext.Session.SetInt32("UserId", user.id);
                 HttpContext.Session.SetString("Username", user.username ?? model.Username);
                 HttpContext.Session.SetString("Role", user.role ?? string.Empty);
@@ -81,6 +87,12 @@ public class AccountController(
 
             if (user.isTwoFactorEnabled != true)
             {
+                if (!await UpdateLastLoginAsync(user, CancellationToken.None))
+                {
+                    ModelState.AddModelError(string.Empty, "Unable to save last login time. Please try again.");
+                    return View(model);
+                }
+
                 HttpContext.Session.SetInt32("UserId", user.id);
                 HttpContext.Session.SetString("Username", user.username ?? model.Username);
                 HttpContext.Session.SetString("Role", user.role ?? string.Empty);
@@ -179,7 +191,11 @@ public class AccountController(
         HttpContext.Session.SetString("Role", user.role ?? HttpContext.Session.GetString(PendingAdminRoleSessionKey) ?? string.Empty);
         HttpContext.Session.SetString(AdminTwoFactorVerifiedSessionKey, "true");
         user.twoFactorSecret = null;
-        await userRepository.UpdateUserAsync(user, CancellationToken.None);
+        if (!await UpdateLastLoginAsync(user, CancellationToken.None))
+        {
+            ModelState.AddModelError(string.Empty, "Unable to save last login time. Please try again.");
+            return View(model);
+        }
 
         ClearPendingAdminTwoFactorSession();
 
@@ -323,6 +339,26 @@ public class AccountController(
         HttpContext.Session.SetString(PendingAdminUsernameSessionKey, user.username ?? usernameFallback);
         HttpContext.Session.SetString(PendingAdminRoleSessionKey, user.role ?? string.Empty);
         HttpContext.Session.Remove(AdminTwoFactorVerifiedSessionKey);
+    }
+
+    private async Task<bool> UpdateLastLoginAsync(User user, CancellationToken cancellationToken)
+    {
+        user.lastLoginTimestamp = DateTime.UtcNow;
+        user.lastLoginIP = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        var updated = await userRepository.UpdateUserAsync(user, cancellationToken);
+        if (!updated)
+        {
+            return false;
+        }
+
+        await adminNotificationHub.Clients.Group(AdminNotificationHub.AdminGroupName).SendAsync(
+            "UserLastLoginUpdated",
+            user.id,
+            user.username ?? user.email ?? $"User #{user.id}",
+            user.lastLoginTimestamp?.ToString("O"));
+
+        return true;
     }
 
     private bool HasPendingAdminTwoFactorSession()

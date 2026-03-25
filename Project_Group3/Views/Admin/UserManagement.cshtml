@@ -96,6 +96,9 @@
                                         var riskScore = u.RiskScore ?? 0;
                                         var statusText = u.isLocked ? "Locked" : (u.isApproved ? "Approved" : "Pending");
                                         var statusClass = u.isLocked ? "danger" : (u.isApproved ? "success" : "warning");
+                                        var lastLoginLocal = u.lastLoginTimestamp is DateTime ts
+                                        ? DateTime.SpecifyKind(ts, DateTimeKind.Utc).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                                        : "N/A";
 
                                         <tr>
                                             <td>
@@ -109,7 +112,7 @@
                                                     <span class="risk-level">@riskLevel</span>
                                                 </div>
                                             </td>
-                                            <td>@(u.lastLoginTimestamp?.ToString("yyyy-MM-dd HH:mm") ?? "N/A")</td>
+                                            <td>@lastLoginLocal</td>
                                             <td>
                                                 @if (!canEditUsers)
                                                 {
@@ -240,7 +243,19 @@
 
             connection.on("UserRegistered", (username) => {
                 const safeUsername = username || "Unknown";
-                notice.textContent = `Có tài kho?n m?i v?a dang ký: ${safeUsername}. Trang s? t? d?ng làm m?i...`;
+                notice.textContent = `Have an account registed: ${safeUsername}. Reload auto...`;
+                notice.classList.remove("d-none");
+
+                setTimeout(() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("_rt", Date.now().toString());
+                    window.location.replace(url.toString());
+                }, 1500);
+            });
+
+            connection.on("UserLastLoginUpdated", (userId, username) => {
+                const safeUsername = username || `User #${userId ?? "?"}`;
+                notice.textContent = `User login: ${safeUsername}. Auto reload to update Last Login...`;
                 notice.classList.remove("d-none");
 
                 setTimeout(() => {
@@ -251,8 +266,7 @@
             });
 
             connection.start().catch((error) => {
-                console.error("Không th? k?t n?i realtime cho User Management:", error);
-            });
+                console.error("Can't connect realtime for User Management:", error);            });
         })();
     </script>
 }
