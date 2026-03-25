@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Security;
 using Project_Group3.Services;
 
 namespace Project_Group3.Controllers;
@@ -12,7 +14,7 @@ public class AdminController(
     CloneEbayDbContext dbContext,
     ILogger<AdminController> logger,
     IPasswordHasherService passwordHasherService,
-    IProductReportTracker productReportTracker) : Controller
+    IHubContext<NotificationHub> notificationHub) : Controller
 {
     private const string ProductStatusActive = "active";
     private const string ProductStatusReported = "reported";
@@ -25,18 +27,6 @@ public class AdminController(
     private const int SellerAutoLockRiskThreshold = 100;
     private const string ActionLogSessionKey = "AdminUserManagementLogs";
     private const string ProductModerationLogSessionKey = "AdminProductModerationLogs";
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor"
-    };
-    private static readonly HashSet<string> AllowedTwoFactorRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor",
-        "support"
-    };
-
     [HttpGet]
     public async Task<IActionResult> UserManagement([FromQuery] UserManagementFilterInput filter, CancellationToken cancellationToken)
     {
@@ -78,7 +68,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveUser(int id, string? keyword, string? status, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -93,7 +83,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RejectUser(LockUserInput input, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -114,7 +104,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> LockUser(LockUserInput input, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -135,7 +125,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UnlockUser(int id, string? keyword, string? status, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        if (!HasAdminAccess())
+        if (!CanEditUsers())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -149,7 +139,7 @@ public class AdminController(
     [HttpGet]
     public async Task<IActionResult> ProductModeration([FromQuery] ProductModerationFilterInput filter, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanAccessProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -175,30 +165,15 @@ public class AdminController(
            .Take(300)
            .ToListAsync(cancellationToken);
 
-        foreach (var product in products)
-        {
-            var combinedReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id);
-            if (combinedReportCount > 0
-                && string.Equals(product.status, ProductStatusActive, StringComparison.OrdinalIgnoreCase))
-            {
-                product.status = ProductStatusReported;
-            }
-        }
-
-        if (dbContext.ChangeTracker.HasChanges())
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-
         var moderationItems = products
-            .Where(product => NormalizeProductStatus(product.status) == normalizedStatus)
-          .Select(product => new ProductModerationItemViewModel
-            {
-                Product = product,
-                ReportCount = GetReportCount(product) + productReportTracker.GetReportCount(product.id),
-                ReportReasons = GetReportReasons(product).Concat(productReportTracker.GetReasons(product.id)).ToList()
-            })
-            .ToList();
+          .Where(product => NormalizeProductStatus(product.status) == normalizedStatus)
+        .Select(product => new ProductModerationItemViewModel
+        {
+            Product = product,
+            ReportCount = GetReportCount(product),
+            ReportReasons = GetReportReasons(product)
+        })
+          .ToList();
 
         var vm = new ProductModerationViewModel
         {
@@ -216,7 +191,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReportProduct(ReportProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasAdminAccess())
+        if (!CanProcessProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -260,7 +235,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> HideProduct(ModerateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -292,6 +267,11 @@ public class AdminController(
 
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await notificationHub.Clients.All.SendAsync(
+            "ProductStatusChanged",
+            product.id,
+            ProductStatusHidden,
+            cancellationToken);
 
         TempData["ActionSuccess"] = isAutoLocked
                     ? $"Product #{product.id} has been hidden. Seller was auto-locked by risk policy."
@@ -311,7 +291,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteProduct(ModerateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -362,7 +342,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ActivateProduct(ActivateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -382,7 +362,13 @@ public class AdminController(
         }
 
         product.status = ProductStatusActive;
+        product.reportnumber = 0;
         await dbContext.SaveChangesAsync(cancellationToken);
+        await notificationHub.Clients.All.SendAsync(
+            "ProductStatusChanged",
+            product.id,
+            ProductStatusActive,
+            cancellationToken);
 
         TempData["ActionSuccess"] = $"Product #{product.id} has been activated.";
         AppendProductModerationLog(new AdminActionLogItem
@@ -401,7 +387,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AutoModerateProduct(ModerateProductInput input, CancellationToken cancellationToken)
     {
-        if (!HasSuperAdminAccess())
+        if (!CanPerformFullProductModeration())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -468,7 +454,7 @@ public class AdminController(
     [HttpGet]
     public async Task<IActionResult> SystemSettings(CancellationToken cancellationToken)
     {
-        if (!HasTwoFactorSettingsAccess())
+        if (!CanUseSystemSettings())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -499,7 +485,7 @@ public class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateAdminTwoFactor(AdminTwoFactorSettingsViewModel model, CancellationToken cancellationToken)
     {
-        if (!HasTwoFactorSettingsAccess())
+        if (!CanUseSystemSettings())
         {
             return RedirectToAction("Login", "Account");
         }
@@ -517,11 +503,16 @@ public class AdminController(
         }
 
         var wantsEnable = model.IsTwoFactorEnabled;
-        if (wantsEnable && user.isTwoFactorEnabled != true)
+        var isCurrentTwoFactorEnabled = user.isTwoFactorEnabled == true;
+        var isChangingTwoFactorState = wantsEnable != isCurrentTwoFactorEnabled;
+
+        if (isChangingTwoFactorState)
         {
             if (string.IsNullOrWhiteSpace(model.CurrentPassword))
             {
-                TempData["ActionError"] = "Please enter your account password to enable 2FA.";
+                TempData["ActionError"] = wantsEnable
+                    ? "Please enter your account password to enable 2FA."
+                    : "Please enter your account password to disable 2FA.";
                 model.Email = user.email;
                 model.Role = user.role ?? string.Empty;
                 return View(nameof(SystemSettings), model);
@@ -570,35 +561,22 @@ public class AdminController(
     }
 
     private bool HasAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessUserManagement);
 
-        return userId is not null
-            && AllowedRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
-    private bool HasTwoFactorSettingsAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+    private bool CanEditUsers()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanEditUsers);
 
-        return userId is not null
-            && AllowedTwoFactorRoles.Contains(role ?? string.Empty)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
-    private bool HasSuperAdminAccess()
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        var role = HttpContext.Session.GetString("Role");
-        var isAdminTwoFactorVerified = HttpContext.Session.GetString("IsAdmin2FAVerified");
+    private bool CanAccessProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanAccessProductModeration);
 
-        return userId is not null
-            && string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(isAdminTwoFactorVerified, "true", StringComparison.OrdinalIgnoreCase);
-    }
+    private bool CanProcessProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanProcessProductModeration);
+
+    private bool CanPerformFullProductModeration()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanPerformFullProductModeration);
+
+    private bool CanUseSystemSettings()
+        => HttpContext.HasAdminPermission(AdminPermissions.CanUseSystemSettings);
     private static (bool? IsApproved, bool? IsLocked) MapStatus(string? status)
         => status?.ToLowerInvariant() switch
         {
@@ -711,7 +689,7 @@ public class AdminController(
     }
 
     private static int GetReportCount(Product product)
-         => Math.Max(product.reportnumber ?? 0, product.Reviews.Count(r => (r.rating ?? 0) <= 2));
+         => product.reportnumber ?? 0;
 
     private static IReadOnlyList<string> GetReportReasons(Product product)
     {

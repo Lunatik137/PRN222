@@ -10,24 +10,58 @@
     }
 
     var role = Context.Session.GetString("Role") ?? string.Empty;
-    var isSuperAdmin = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
 }
 
 <aside class="dashboard-sidebar">
-    <div class="brand">Marketplace Admin</div>
     <nav class="menu list-unstyled">
-        <a asp-controller="AdminDashboard" asp-action="Dashboard" class="menu-link @IsActive("AdminDashboard", "Dashboard")">Dashboard</a>
-        <a asp-controller="Admin" asp-action="UserManagement" class="menu-link @IsActive("Admin", "UserManagement")">User Management</a>
-        @if (isSuperAdmin)
+        @if (AdminPermissions.CanAccessDashboard(role))
+        {
+            <a asp-controller="AdminDashboard" asp-action="Dashboard" class="menu-link @IsActive("AdminDashboard", "Dashboard")">Dashboard</a>
+        }
+
+        @if (AdminPermissions.CanAccessUserManagement(role))
+        {
+            <a asp-controller="Admin" asp-action="UserManagement" class="menu-link @IsActive("Admin", "UserManagement")">User Management</a>
+        }
+
+        @if (AdminPermissions.CanAccessProductModeration(role))
         {
             <a asp-controller="Admin" asp-action="ProductModeration" class="menu-link @IsActive("Admin", "ProductModeration")">Product Moderation</a>
         }
-        <a asp-controller="AdminOrder" asp-action="Index" class="menu-link @IsActive("AdminOrder")">Order Management</a>
-        <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="menu-link @IsActive("ReturnRequestAdmin")">Return Request Approval</a>
-        <a asp-controller="Email" asp-action="Send" class="menu-link @IsActive("Email")">System Email Notification</a>
-        <a asp-controller="AdminReviewFeedback" asp-action="ReviewsFeedback" class="menu-link @IsActive("AdminReviewFeedback", "ReviewsFeedback")">Reviews & Feedback</a>
-        <a asp-controller="AdminDispute" asp-action="IndexDispute" class="menu-link @IsActive("AdminDispute")">Complaints / Disputes</a>
-        <a asp-controller="AdminAnalytics" asp-action="Analytics" class="menu-link @IsActive("AdminAnalytics", "Analytics")">Analytics</a>
-        <a asp-controller="Admin" asp-action="SystemSettings" class="menu-link @IsActive("Admin", "SystemSettings")">System Settings</a>
+
+        @if (AdminPermissions.CanAccessOrders(role))
+        {
+            <a asp-controller="AdminOrder" asp-action="Index" class="menu-link @IsActive("AdminOrder")">Order Management</a>
+        }
+
+        @if (AdminPermissions.CanAccessRefunds(role))
+        {
+            <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="menu-link @IsActive("ReturnRequestAdmin")">Return Request Approval</a>
+        }
+
+        @if (AdminPermissions.CanAccessEmailSystem(role))
+        {
+            <a asp-controller="Email" asp-action="Send" class="menu-link @IsActive("Email")">System Email Notification</a>
+        }
+
+        @if (AdminPermissions.CanAccessReviewsFeedback(role))
+        {
+            <a asp-controller="AdminReviewFeedback" asp-action="ReviewsFeedback" class="menu-link @IsActive("AdminReviewFeedback", "ReviewsFeedback")">Reviews & Feedback</a>
+        }
+
+        @if (AdminPermissions.CanAccessDisputes(role))
+        {
+            <a asp-controller="AdminDispute" asp-action="IndexDispute" class="menu-link @IsActive("AdminDispute")">Complaints / Disputes</a>
+        }
+
+        @if (AdminPermissions.CanAccessAnalytics(role))
+        {
+            <a asp-controller="AdminAnalytics" asp-action="Analytics" class="menu-link @IsActive("AdminAnalytics", "Analytics")">Analytics</a>
+        }
+
+        @if (AdminPermissions.CanUseSystemSettings(role))
+        {
+            <a asp-controller="Admin" asp-action="SystemSettings" class="menu-link @IsActive("Admin", "SystemSettings")">System Settings</a>
+        }
     </nav>
 </aside>

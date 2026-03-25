@@ -6,6 +6,12 @@
     var username = Context.Session.GetString("Username") ?? "Admin";
     var role = Context.Session.GetString("Role") ?? string.Empty;
     var isSuperAdmin = string.Equals(role, "superadmin", StringComparison.OrdinalIgnoreCase);
+    var canAccessUserManagement = AdminPermissions.CanAccessUserManagement(role);
+    var canAccessProductModeration = AdminPermissions.CanAccessProductModeration(role);
+    var canAccessDisputes = AdminPermissions.CanAccessDisputes(role);
+    var canAccessRefunds = AdminPermissions.CanAccessRefunds(role);
+    var canAccessEmailSystem = AdminPermissions.CanAccessEmailSystem(role);
+    var canUseSystemSettings = AdminPermissions.CanUseSystemSettings(role);
 
     var ordersMax = Math.Max(1, Model.OrdersTrendSeries.DefaultIfEmpty(0).Max());
     var usersMax = Math.Max(1, Model.NewUsersSeries.DefaultIfEmpty(0).Max());
@@ -256,15 +262,30 @@
                                 <span class="badge hub-badge">Ready</span>
                             </div>
                             <div class="d-grid gap-2 mt-3">
-                                <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-hub">Approve new users</a>
-                                @if (isSuperAdmin)
+                                @if (canAccessUserManagement)
                                 {
-                                    <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Review reported products</a>
+                                    <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-hub">User management</a>
                                 }
-                                <a asp-controller="AdminDispute" asp-action="IndexDispute" class="btn btn-hub-outline">View complaints</a>
-                                <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="btn btn-hub-outline">Approve return requests</a>
-                                <a asp-controller="Email" asp-action="Send" class="btn btn-hub-outline">Send system warning email</a>
-                                <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Manage system settings</a>
+                                @if (canAccessProductModeration)
+                                {
+                                    <a asp-controller="Admin" asp-action="ProductModeration" class="btn btn-hub-outline">Product moderation</a>
+                                }
+                                @if (canAccessDisputes)
+                                {
+                                    <a asp-controller="AdminDispute" asp-action="IndexDispute" class="btn btn-hub-outline">View complaints</a>
+                                }
+                                @if (canAccessRefunds)
+                                {
+                                    <a asp-controller="ReturnRequestAdmin" asp-action="Index" class="btn btn-hub-outline">Return requests</a>
+                                }
+                                @if (canAccessEmailSystem)
+                                {
+                                    <a asp-controller="Email" asp-action="Send" class="btn btn-hub-outline">System email</a>
+                                }
+                                @if (canUseSystemSettings)
+                                {
+                                    <a asp-controller="Admin" asp-action="SystemSettings" class="btn btn-hub-outline">Manage system settings</a>
+                                }
                             </div>
                         </div>
                     </article>

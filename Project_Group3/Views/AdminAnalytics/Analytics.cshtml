@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Analytics";
     var username = Context.Session.GetString("Username") ?? "Admin";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var canExportAnalytics = AdminPermissions.CanExportAnalytics(role);
 }
 
 <div class="admin-page-wrapper">
@@ -63,16 +65,19 @@
                         <div class="col-6 col-md-12 col-lg-2 d-grid ms-lg-auto">
                             <button type="submit" class="btn btn-primary">Apply</button>
                         </div>
-                        <div class="col-6 col-md-12 col-lg-2 d-grid">
-                            <a asp-controller="AdminAnalytics"
-                               asp-action="ExportReport"
-                               asp-route-periodType="@Model.PeriodType"
-                               asp-route-day="@Model.Day.ToString("yyyy-MM-dd")"
-                               asp-route-month="@Model.Month"
-                               asp-route-quarter="@Model.Quarter"
-                               asp-route-year="@Model.Year"
-                               class="btn btn-outline-secondary">Export Excel</a>
-                        </div>
+                        @if (canExportAnalytics)
+                        {
+                            <div class="col-6 col-md-12 col-lg-2 d-grid">
+                                <a asp-controller="AdminAnalytics"
+                                   asp-action="ExportReport"
+                                   asp-route-periodType="@Model.PeriodType"
+                                   asp-route-day="@Model.Day.ToString("yyyy-MM-dd")"
+                                   asp-route-month="@Model.Month"
+                                   asp-route-quarter="@Model.Quarter"
+                                   asp-route-year="@Model.Year"
+                                   class="btn btn-outline-secondary">Export Excel</a>
+                            </div>
+                        }
                     </form>
 
                     <div class="mt-3 text-muted small">
@@ -229,24 +234,3 @@
     </script>
 }
 
-<style>
-    .analytics-page {
-        background: #f8f9fb;
-    }
-
-    .analytics-title {
-        color: #111827;
-        font-size: 1.6rem;
-    }
-
-    .analytics-subtitle {
-        color: #6b7280;
-    }
-
-    .analytics-filter,
-    .analytics-kpi-card,
-    .analytics-chart-placeholder {
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-    }
-</style>

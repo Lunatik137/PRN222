@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Project_Group3.Hubs;
 using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
+using Project_Group3.Security;
 using Project_Group3.Services;
 
 namespace Project_Group3.Controllers;
@@ -20,13 +21,6 @@ public class AccountController(
     private const string PendingAdminUsernameSessionKey = "PendingAdminUsername";
     private const string PendingAdminRoleSessionKey = "PendingAdminRole";
     private const string AdminTwoFactorVerifiedSessionKey = "IsAdmin2FAVerified";
-
-    private static readonly HashSet<string> AdminRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "superadmin",
-        "monitor",
-        "support"
-    };
 
     private static readonly HashSet<string> AllowedRegisterRoles = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -74,7 +68,7 @@ public class AccountController(
                 return View(model);
             }
 
-            if (!AdminRoles.Contains(user.role ?? string.Empty))
+            if (!AdminPermissions.IsAdminRole(user.role))
             {
                 HttpContext.Session.SetInt32("UserId", user.id);
                 HttpContext.Session.SetString("Username", user.username ?? model.Username);
@@ -87,8 +81,16 @@ public class AccountController(
 
             if (user.isTwoFactorEnabled != true)
             {
-                ModelState.AddModelError(string.Empty, "Admin account must enable 2FA before accessing Admin panel.");
-                return View(model);
+                HttpContext.Session.SetInt32("UserId", user.id);
+                HttpContext.Session.SetString("Username", user.username ?? model.Username);
+                HttpContext.Session.SetString("Role", user.role ?? string.Empty);
+                HttpContext.Session.SetString(AdminTwoFactorVerifiedSessionKey, "true");
+
+                TempData["LoginMessage"] = $"Hello, {user.username}!";
+                return string.Equals(user.role, "superadmin", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(user.role, "monitor", StringComparison.OrdinalIgnoreCase)
+                    ? RedirectToAction("Dashboard", "AdminDashboard")
+                    : RedirectToAction("SystemSettings", "Admin");
             }
 
             if (string.IsNullOrWhiteSpace(user.email))
@@ -160,7 +162,7 @@ public class AccountController(
         }
 
         var user = await userRepository.GetByIdAsync(pendingAdminUserId.Value, CancellationToken.None);
-        if (user is null || !AdminRoles.Contains(user.role ?? string.Empty))
+        if (user is null || !AdminPermissions.IsAdminRole(user.role))
         {
             ClearPendingAdminTwoFactorSession();
             return RedirectToAction(nameof(Login));
@@ -182,10 +184,7 @@ public class AccountController(
         ClearPendingAdminTwoFactorSession();
 
         TempData["LoginMessage"] = $"Hello, {user.username}!";
-        return string.Equals(user.role, "superadmin", StringComparison.OrdinalIgnoreCase)
-               || string.Equals(user.role, "monitor", StringComparison.OrdinalIgnoreCase)
-            ? RedirectToAction("Dashboard", "AdminDashboard")
-            : RedirectToAction("SystemSettings", "Admin");
+        return RedirectToAction("Dashboard", "AdminDashboard");
     }
 
     [HttpGet]

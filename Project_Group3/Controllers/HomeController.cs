@@ -4,15 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using Project_Group3.Hubs;
 using Project_Group3.Models;
-using Project_Group3.Services;
 
 namespace Project_Group3.Controllers
 {
     public class HomeController(
            CloneEbayDbContext dbContext,
            ILogger<HomeController> logger,
-           IHubContext<AdminNotificationHub> adminNotificationHub,
-           IProductReportTracker productReportTracker) : Controller
+           IHubContext<AdminNotificationHub> adminNotificationHub) : Controller
     {
         private const string BuyerRole = "buyer";
         private const string ProductStatusActive = "active";
@@ -80,7 +78,6 @@ namespace Project_Group3.Controllers
 
             var reportReason = input.Reason.Trim();
             var buyerName = HttpContext.Session.GetString("Username") ?? "Buyer";
-            productReportTracker.AddReport(product.id, reportReason, buyerName, DateTime.UtcNow);
 
             product.status = ProductStatusReported;
             product.reportnumber = (product.reportnumber ?? 0) + 1;

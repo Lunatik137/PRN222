@@ -1,7 +1,14 @@
 @using Project_Group3.Models
+@using Microsoft.AspNetCore.Http
 @{
     var username = Context.Session.GetString("Username") ?? "Admin";
     var currentTab = ViewBag.CurrentTab as string ?? "reviews";
+    var canProcessReviews = ViewBag.CanProcessReviews is bool canProcess && canProcess;
+    var canDeleteReviews = ViewBag.CanDeleteReviews is bool canDelete && canDelete;
+    var reviews = ViewBag.ReviewItems as IEnumerable<Review> ?? new List<Review>();
+    var feedbacks = ViewBag.SellerItems as IEnumerable<Feedback> ?? new List<Feedback>();
+    var currentPage = ViewBag.CurrentPage is int page ? page : 1;
+    var totalPages = ViewBag.TotalPages is int total ? total : 0;
 }
 
 <div class="admin-page-wrapper">
@@ -11,41 +18,15 @@
         <main class="dashboard-content">
             <div class="container-fluid py-4">
                 <h2>Reviews & Feedback</h2>
-                <p>Monitor products and sellers for any violations.</p>
+                <p>Monitor products and sellers for any violations. Signed in as <strong>@username</strong>.</p>
 
-                @if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
+                @if (TempData["SuccessMessage"] != null)
                 {
-                    var isSuccess = TempData["SuccessMessage"] != null;
-                    var msg = isSuccess ? TempData["SuccessMessage"]?.ToString() : TempData["ErrorMessage"]?.ToString();
-                    var actionStatus = TempData["ActionStatus"]?.ToString();
-                    
-                    string statusColorClass = actionStatus switch {
-                        "Approved" => "text-success",
-                        "Rejected" => "text-danger",
-                        "Hidden"   => "text-secondary",
-                        "Show"     => "text-info",
-                        "Deleted"  => "text-danger",
-                        _          => "text-dark"
-                    };
-                    
-                    <div class="toast-container position-fixed bottom-0 end-0 p-4" style="z-index: 1055;">
-                        <div id="actionToast" class="toast align-items-center bg-white border shadow-sm" role="alert" aria-live="assertive" aria-atomic="true">
-                            <div class="d-flex">
-                                <div class="toast-body d-flex align-items-center fs-6 fw-bold text-dark px-3 py-3">
-                                    <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center me-3" style="width: 24px; height: 24px;">
-                                        <span class="fs-6" style="font-family: serif; font-style: italic;">i</span>
-                                    </div>
-                                    <span>
-                                        @msg
-                                        @if (actionStatus != null)
-                                        {
-                                            <span class="@statusColorClass">@actionStatus</span><span>.</span>
-                                        }
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="alert alert-success">@TempData["SuccessMessage"]@TempData["ActionStatus"]</div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
                 }
 
                 <ul class="nav nav-tabs mt-4">
@@ -60,8 +41,6 @@
                 <div class="tab-content border border-top-0 p-3 bg-white">
                     @if (currentTab == "reviews")
                     {
-                        var reviews = ViewBag.ReviewItems as IEnumerable<Review>;
-                        
                         <form method="get" class="row g-3 mb-4">
                             <input type="hidden" name="tab" value="reviews" />
                             <div class="col-md-2">
@@ -83,10 +62,10 @@
                             <div class="col-md-2">
                                 <select name="statusFilter" class="form-select">
                                     <option value="">All Statuses</option>
-                                    <option value="Pending"   selected="@(ViewBag.StatusFilter == "Pending"   ? "selected" : null)">Pending</option>
-                                    <option value="Approved"  selected="@(ViewBag.StatusFilter == "Approved"  ? "selected" : null)">Approved</option>
-                                    <option value="Rejected"  selected="@(ViewBag.StatusFilter == "Rejected"  ? "selected" : null)">Rejected</option>
-                                    <option value="Hidden"    selected="@(ViewBag.StatusFilter == "Hidden"    ? "selected" : null)">Hidden</option>
+                                    <option value="Pending" selected="@(ViewBag.StatusFilter == "Pending" ? "selected" : null)">Pending</option>
+                                    <option value="Approved" selected="@(ViewBag.StatusFilter == "Approved" ? "selected" : null)">Approved</option>
+                                    <option value="Rejected" selected="@(ViewBag.StatusFilter == "Rejected" ? "selected" : null)">Rejected</option>
+                                    <option value="Hidden" selected="@(ViewBag.StatusFilter == "Hidden" ? "selected" : null)">Hidden</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -96,141 +75,109 @@
                                     <option value="20" selected="@(ViewBag.PageSize == 20 ? "selected" : null)">20 per page</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <button type="submit" class="btn btn-primary">Filter</button>
                                 <a href="/AdminReviewFeedback/ReviewsFeedback?tab=reviews" class="btn btn-secondary">Clear</a>
                             </div>
                         </form>
 
-                        <div class="row row-cols-1 row-cols-xl-2 g-4">
-                            @if(reviews != null) {
-                                foreach (var review in reviews)
-                                {
-                                    var status = review.status ?? "Pending";
-                                    var riskLevel = review.reviewer?.RiskLevel ?? "—";
-                                    var riskScore = review.reviewer?.RiskScore ?? 0;
-                                    
-                                    string statusBadge = status switch {
-                                        "Approved" => "bg-success",
-                                        "Rejected" => "bg-danger",
-                                        "Hidden"   => "bg-secondary",
-                                        "Show"     => "bg-info text-dark",
-                                        _          => "bg-warning text-dark"
-                                    };
-                                    
-                                    var usernameDisplay = review.reviewer?.username ?? review.reviewer?.email ?? "Unknown User";
-                                    var userInitial = string.IsNullOrEmpty(usernameDisplay) ? "U" : usernameDisplay.Substring(0, 1).ToUpper();
-
-                                    <div class="col">
-                                        <div class="card shadow-sm border-0 h-100">
-                                            <div class="card-body d-flex flex-column">
-                                            <!-- Top Row: Avatar & Status -->
-                                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <div class="d-flex align-items-center gap-3">
-                                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 48px; height: 48px; font-size: 1.2rem;">
-                                                        @userInitial
-                                                    </div>
-                                                    <div>
-                                                        <div class="fw-bold fs-5">@usernameDisplay</div>
-                                                        <div class="text-muted small">@(review.createdAt?.ToString("dd/MM/yyyy") ?? "—")</div>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <span class="badge @statusBadge px-3 py-2 fs-6 rounded-pill">@(status == "Pending" ? "Pending" : status)</span>
-                                                </div>
-                                            </div>
-
-                                            <!-- Rating Row -->
-                                            <div class="d-flex align-items-center mb-3">
-                                                <div class="text-warning fs-5 me-2">
-                                                    @for (int i = 0; i < 5; i++) {
-                                                        if (i < (review.rating ?? 0)) { <i class="bi bi-star-fill">★</i> } else { <i class="bi bi-star text-muted">☆</i> }
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Reviewer</th>
+                                        <th>Product</th>
+                                        <th>Rating</th>
+                                        <th>Status</th>
+                                        <th>Comment</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (!reviews.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No reviews found.</td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        foreach (var review in reviews)
+                                        {
+                                            var status = review.status ?? "Pending";
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold">@(review.reviewer?.username ?? review.reviewer?.email ?? "Unknown User")</div>
+                                                    <small class="text-muted">@(review.createdAt?.ToString("dd/MM/yyyy") ?? "-")</small>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-semibold">@(review.product?.title ?? "N/A")</div>
+                                                    <small class="text-muted">Seller ID: @(review.product?.sellerId?.ToString() ?? "-")</small>
+                                                </td>
+                                                <td>@(review.rating ?? 0)/5</td>
+                                                <td>@status</td>
+                                                <td style="max-width: 360px; white-space: normal;">@review.comment</td>
+                                                <td>
+                                                    @if (!canProcessReviews)
+                                                    {
+                                                        <span class="text-muted">View only</span>
                                                     }
-                                                </div>
-                                                <strong class="fs-5">@(review.rating ?? 0)/5</strong>
-                                            </div>
-
-                                            <!-- Product Box -->
-                                            <div class="bg-light bg-opacity-50 border rounded-3 p-3 mb-3 d-flex align-items-center gap-3">
-                                                <div>
-                                                    <h5 class="mb-1 text-primary">@(review.product?.title ?? "N/A")</h5>
-                                                    <div class="text-muted small">
-                                                        <span class="me-3"><i class="bi bi-box"></i> ID: @(review.product?.id.ToString() ?? "—")</span>
-                                                        <span class="me-3"><i class="bi bi-person-badge"></i> Seller ID: @(review.product?.sellerId?.ToString() ?? "—")</span>
-                                                        <span class="text-primary fw-bold">$@(review.product?.price?.ToString("0.00") ?? "0.00")</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Review Comment -->
-                                            <div class="border rounded-3 p-3 mb-3 bg-white fs-5">
-                                                @review.comment
-                                            </div>
-
-                                            <!-- Risk Alert Box -->
-                                            @if (riskLevel != "—")
-                                            {
-                                                <div class="alert alert-warning border border-warning d-flex align-items-center justify-content-between mb-4">
-                                                    <div>
-                                                        <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
-                                                        <strong class="text-dark">Warning! Risk Level: <span class="@(riskLevel == "HIGH" ? "text-danger" : "text-dark")">@riskLevel</span></strong>
-                                                        <span class="badge bg-white border text-dark ms-2">Score: @riskScore</span>
-                                                    </div>
-                                                </div>
-                                            }
-
-                                            <!-- Action Buttons -->
-                                            <div class="d-flex gap-2">
-                                                @if (status == "Pending")
-                                                {
-                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
-                                                        <input type="hidden" name="id" value="@review.id" />
-                                                        <input type="hidden" name="newStatus" value="Approved" />
-                                                        <button type="submit" class="btn btn-success px-4 fw-bold">
-                                                            <i class="bi bi-check-circle me-1">✓</i> Approve
-                                                        </button>
-                                                    </form>
-                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Reject this review?')">
-                                                        <input type="hidden" name="id" value="@review.id" />
-                                                        <input type="hidden" name="newStatus" value="Rejected" />
-                                                        <button type="submit" class="btn btn-danger px-4 fw-bold">
-                                                            <i class="bi bi-trash me-1">🗑</i> Reject
-                                                        </button>
-                                                    </form>
-                                                }
-                                                else if (status == "Approved" || status == "Show")
-                                                {
-                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
-                                                        <input type="hidden" name="id" value="@review.id" />
-                                                        <input type="hidden" name="newStatus" value="Hidden" />
-                                                        <button type="submit" class="btn btn-secondary px-4 fw-bold">Hide</button>
-                                                    </form>
-                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Permanently delete this review?')">
-                                                        <input type="hidden" name="id" value="@review.id" />
-                                                        <input type="hidden" name="newStatus" value="Deleted" />
-                                                        <button type="submit" class="btn btn-outline-danger px-4 fw-bold">Delete</button>
-                                                    </form>
-                                                }
-                                                else if (status == "Hidden")
-                                                {
-                                                    <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
-                                                        <input type="hidden" name="id" value="@review.id" />
-                                                        <input type="hidden" name="newStatus" value="Show" />
-                                                        <button type="submit" class="btn btn-info px-4 fw-bold text-white">Show</button>
-                                                    </form>
-                                                }
-                                            </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            }
+                                                    else if (status == "Pending")
+                                                    {
+                                                        <div class="d-flex gap-2">
+                                                            <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@review.id" />
+                                                                <input type="hidden" name="newStatus" value="Approved" />
+                                                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                                            </form>
+                                                            <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Reject this review?')">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@review.id" />
+                                                                <input type="hidden" name="newStatus" value="Rejected" />
+                                                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                                            </form>
+                                                        </div>
+                                                    }
+                                                    else if (status == "Approved" || status == "Show")
+                                                    {
+                                                        <div class="d-flex gap-2">
+                                                            <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@review.id" />
+                                                                <input type="hidden" name="newStatus" value="Hidden" />
+                                                                <button type="submit" class="btn btn-sm btn-secondary">Hide</button>
+                                                            </form>
+                                                            @if (canDeleteReviews)
+                                                            {
+                                                                <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post" onsubmit="return confirm('Permanently delete this review?')">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="id" value="@review.id" />
+                                                                    <input type="hidden" name="newStatus" value="Deleted" />
+                                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                                </form>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else if (status == "Hidden")
+                                                    {
+                                                        <form asp-controller="AdminReviewFeedback" asp-action="UpdateReviewStatus" method="post">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@review.id" />
+                                                            <input type="hidden" name="newStatus" value="Show" />
+                                                            <button type="submit" class="btn btn-sm btn-info text-white">Show</button>
+                                                        </form>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
                         </div>
                     }
-                    else if (currentTab == "sellers")
+                    else
                     {
-                        var feedbacks = ViewBag.SellerItems as IEnumerable<Feedback>;
-                        
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
                                 <thead class="table-dark">
@@ -245,7 +192,14 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if(feedbacks != null) {
+                                    @if (!feedbacks.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">No feedback records found.</td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
                                         foreach (var fb in feedbacks)
                                         {
                                             var isRisky = fb.positiveRate < 80 || fb.averageRating < 3;
@@ -254,21 +208,9 @@
                                                 <td>@(fb.seller?.username ?? "N/A")</td>
                                                 <td>@fb.totalReviews</td>
                                                 <td>@fb.averageRating / 5.0</td>
-                                                <td>
-                                                    <div class="progress" style="height: 20px;">
-                                                        <div class="progress-bar @(isRisky ? "bg-danger" : "bg-success")" 
-                                                             style="width: @(fb.positiveRate)%;">
-                                                            @fb.positiveRate%
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    @if(isRisky) { <span class="badge bg-danger">Risky</span> }
-                                                    else { <span class="badge bg-success">Good</span> }
-                                                </td>
-                                                <td>
-                                                    <a href="#" class="btn btn-sm btn-outline-warning">Warn</a>
-                                                </td>
+                                                <td>@fb.positiveRate%</td>
+                                                <td>@(isRisky ? "Risky" : "Good")</td>
+                                                <td>@(canProcessReviews ? "Processing role" : "View only")</td>
                                             </tr>
                                         }
                                     }
@@ -277,28 +219,20 @@
                         </div>
                     }
 
-                    <!-- Pagination -->
-                    @if (ViewBag.TotalPages != null && ViewBag.TotalPages > 0)
+                    @if (totalPages > 0)
                     {
-                        var currentPage = (int)ViewBag.CurrentPage;
-                        var totalPages = (int)ViewBag.TotalPages;
-
                         <nav class="mt-4 pb-3 d-flex justify-content-between align-items-center">
-                            <div class="text-muted fw-bold">
-                                Page @currentPage of @totalPages
-                            </div>
+                            <div class="text-muted fw-bold">Page @currentPage of @totalPages</div>
                             <ul class="pagination mb-0">
                                 <li class="page-item @(currentPage == 1 ? "disabled" : "")">
                                     <a class="page-link" href="/AdminReviewFeedback/ReviewsFeedback?tab=@currentTab&page=@(currentPage - 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Previous</a>
                                 </li>
-                                
                                 @for (int i = 1; i <= totalPages; i++)
                                 {
                                     <li class="page-item @(i == currentPage ? "active" : "")">
                                         <a class="page-link" href="/AdminReviewFeedback/ReviewsFeedback?tab=@currentTab&page=@i&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">@i</a>
                                     </li>
                                 }
-
                                 <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
                                     <a class="page-link" href="/AdminReviewFeedback/ReviewsFeedback?tab=@currentTab&page=@(currentPage + 1)&pageSize=@ViewBag.PageSize&keyword=@ViewBag.Keyword&sellerIdSearch=@ViewBag.SellerIdSearch&ratingFilter=@ViewBag.RatingFilter&statusFilter=@ViewBag.StatusFilter">Next</a>
                                 </li>
@@ -311,15 +245,3 @@
     </div>
 </div>
 
-@if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
-{
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            var toastEl = document.getElementById('actionToast');
-            if (toastEl) {
-                var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 5000 });
-                toast.show();
-            }
-        });
-    </script>
-}

@@ -1,8 +1,11 @@
-﻿@model Project_Group3.Models.ProductModerationViewModel
+@model Project_Group3.Models.ProductModerationViewModel
 @using Microsoft.AspNetCore.Http
 @{
     ViewData["Title"] = "Product Moderation";
     var username = Context.Session.GetString("Username") ?? "SuperAdmin";
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var canProcessProductModeration = AdminPermissions.CanProcessProductModeration(role);
+    var canPerformFullProductModeration = AdminPermissions.CanPerformFullProductModeration(role);
 }
 
 <div class="admin-page-wrapper">
@@ -26,6 +29,7 @@
             {
                 <div class="alert alert-danger">@errorMessage</div>
             }
+
             <section class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
                     <form method="get" asp-action="ProductModeration" class="row g-2 align-items-end">
@@ -48,6 +52,7 @@
                     </form>
                 </div>
             </section>
+
             <section class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
                     <div id="realtimeProductReportNotice" class="alert alert-warning d-none" role="alert"></div>
@@ -91,7 +96,8 @@
                                             "deleted" => "bg-dark",
                                             _ => "bg-secondary"
                                         };
-               <tr class="@rowClass">
+
+                                        <tr class="@rowClass">
                                             <td>@product.id</td>
                                             <td>
                                                 <div class="fw-semibold">@product.title</div>
@@ -104,7 +110,7 @@
                                             <td>
                                                 <span class="badge @statusBadgeClass">@(product.status ?? "unknown")</span>
                                             </td>
-                                             <td>
+                                            <td>
                                                 <span class="badge bg-danger">@item.ReportCount</span>
                                             </td>
                                             <td style="max-width: 280px; white-space: normal;">
@@ -126,40 +132,64 @@
                                                 @product.description
                                             </td>
                                             <td>
-                                                @if (normalizedStatus == "hidden")
+                                                @if (canPerformFullProductModeration)
                                                 {
-                                                    <form asp-action="ActivateProduct" method="post" class="mb-2" onsubmit="return confirm('Activate product #@product.id?')">
-                                                        @Html.AntiForgeryToken()
-                                                        <input type="hidden" name="ProductId" value="@product.id" />
-                                                        <input type="hidden" name="Status" value="@Model.Status" />
-                                                        <input type="hidden" name="Keyword" value="@Model.Keyword" />
-                                                        <button type="submit" class="btn btn-success btn-sm w-100">Active product</button>
-                                                    </form>
-                                                }
-                                                else
-                                                {
-                                                    <form asp-action="HideProduct" method="post" class="mb-2" onsubmit="return confirm('Hide product #@product.id?')">
+                                                    @if (normalizedStatus == "hidden")
+                                                    {
+                                                        <form asp-action="ActivateProduct" method="post" class="mb-2" onsubmit="return confirm('Activate product #@product.id?')">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="ProductId" value="@product.id" />
+                                                            <input type="hidden" name="Status" value="@Model.Status" />
+                                                            <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                            <button type="submit" class="btn btn-success btn-sm w-100">Activate product</button>
+                                                        </form>
+                                                    }
+                                                    else
+                                                    {
+                                                        <form asp-action="HideProduct" method="post" class="mb-2" onsubmit="return confirm('Hide product #@product.id?')">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="ProductId" value="@product.id" />
+                                                            <input type="hidden" name="Status" value="@Model.Status" />
+                                                            <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                            <div class="input-group input-group-sm mb-1">
+                                                                <input type="text" name="Reason" class="form-control" placeholder="Hide reason" required />
+                                                            </div>
+                                                            <button type="submit" class="btn btn-warning btn-sm w-100">Hide product</button>
+                                                        </form>
+                                                    }
+
+                                                    <form asp-action="DeleteProduct" method="post" class="mb-2" onsubmit="return confirm('Delete product #@product.id? This action is severe.')">
                                                         @Html.AntiForgeryToken()
                                                         <input type="hidden" name="ProductId" value="@product.id" />
                                                         <input type="hidden" name="Status" value="@Model.Status" />
                                                         <input type="hidden" name="Keyword" value="@Model.Keyword" />
                                                         <div class="input-group input-group-sm mb-1">
-                                                            <input type="text" name="Reason" class="form-control" placeholder="Hide reason" required />
+                                                            <input type="text" name="Reason" class="form-control" placeholder="Delete reason" required />
                                                         </div>
-                                                        <button type="submit" class="btn btn-warning btn-sm w-100">Hide product</button>
+                                                        <button type="submit" class="btn btn-danger btn-sm w-100">Delete product</button>
                                                     </form>
                                                 }
-
-                                                <form asp-action="DeleteProduct" method="post" class="mb-2" onsubmit="return confirm('Delete product #@product.id? This action is severe.')">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="ProductId" value="@product.id" />
-                                                    <input type="hidden" name="Status" value="@Model.Status" />
-                                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
-                                                    <div class="input-group input-group-sm mb-1">
-                                                        <input type="text" name="Reason" class="form-control" placeholder="Delete reason" required />
-                                                    </div>
-                                                    <button type="submit" class="btn btn-danger btn-sm w-100">Delete product</button>
-                                                </form>
+                                                else if (canProcessProductModeration && normalizedStatus == "active")
+                                                {
+                                                    <form asp-action="ReportProduct" method="post" class="mb-2" onsubmit="return confirm('Flag product #@product.id for superadmin review?')">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="ProductId" value="@product.id" />
+                                                        <input type="hidden" name="Status" value="@Model.Status" />
+                                                        <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                                        <div class="input-group input-group-sm mb-1">
+                                                            <input type="text" name="Reason" class="form-control" placeholder="Escalation reason" required />
+                                                        </div>
+                                                        <button type="submit" class="btn btn-outline-warning btn-sm w-100">Flag for review</button>
+                                                    </form>
+                                                }
+                                                else if (canProcessProductModeration)
+                                                {
+                                                    <span class="text-muted small">Support can flag active products for superadmin review.</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">View only</span>
+                                                }
                                             </td>
                                         </tr>
                                     }
@@ -183,7 +213,7 @@
                             @foreach (var log in Model.ActionLogs)
                             {
                                 <li class="list-group-item px-0">
-                                    <strong>@log.Action</strong> — @log.Target
+                                    <strong>@log.Action</strong> - @log.Target
                                     <div class="small text-muted">@log.AtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") by @log.Username</div>
                                     <div class="small">@log.Details</div>
                                 </li>
