@@ -210,7 +210,16 @@
                                                 <td>@fb.averageRating / 5.0</td>
                                                 <td>@fb.positiveRate%</td>
                                                 <td>@(isRisky ? "Risky" : "Good")</td>
-                                                <td>@(canProcessReviews ? "Processing role" : "View only")</td>
+                                                <td>
+                                                    @if(canProcessReviews) {
+                                                        <form asp-controller="AdminReviewFeedback" asp-action="WarnSeller" method="post" onsubmit="return confirm('Send an urgent real-time warning to this seller?');">
+                                                            <input type="hidden" name="sellerId" value="@fb.sellerId" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-warning fw-bold">Warn</button>
+                                                        </form>
+                                                    } else {
+                                                        <span class="text-muted">View only</span>
+                                                    }
+                                                </td>
                                             </tr>
                                         }
                                     }

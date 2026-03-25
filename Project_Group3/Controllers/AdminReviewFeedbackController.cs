@@ -2,17 +2,27 @@ using Microsoft.AspNetCore.Mvc;
 using Project_Group3.Repository.Interfaces;
 using Project_Group3.Security;
 
+using Microsoft.AspNetCore.SignalR;
+
 namespace Project_Group3.Controllers;
 
 public class AdminReviewFeedbackController : Controller
 {
     private readonly IReviewRepository reviewRepository;
     private readonly IFeedbackRepository feedbackRepository;
+    private readonly IUserRepository userRepository;
+    private readonly IHubContext<NotificationHub> notificationHub;
 
-    public AdminReviewFeedbackController(IReviewRepository reviewRepository, IFeedbackRepository feedbackRepository)
+    public AdminReviewFeedbackController(
+        IReviewRepository reviewRepository, 
+        IFeedbackRepository feedbackRepository,
+        IUserRepository userRepository,
+        IHubContext<NotificationHub> notificationHub)
     {
         this.reviewRepository = reviewRepository;
         this.feedbackRepository = feedbackRepository;
+        this.userRepository = userRepository;
+        this.notificationHub = notificationHub;
     }
 
     [HttpGet]
@@ -94,6 +104,31 @@ public class AdminReviewFeedbackController : Controller
 
         if (!success) TempData["ErrorMessage"] = "Action failed.";
         return RedirectToAction(nameof(ReviewsFeedback));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> WarnSeller(int sellerId)
+    {
+        if (!CanProcessReviewsFeedback())
+        {
+            return RedirectToAction(nameof(ReviewsFeedback));
+        }
+
+        var seller = await userRepository.GetByIdAsync(sellerId, HttpContext.RequestAborted);
+        if (seller is null)
+        {
+            TempData["ErrorMessage"] = "Seller not found.";
+            return RedirectToAction(nameof(ReviewsFeedback), new { tab = "sellers" });
+        }
+
+        var score = seller.RiskScore ?? 0;
+        var warnMessage = $"Your seller risk level is currently at {score}. Please be aware that if your score reaches 100, your account will be automatically locked and your listings will be paused. To lower your score, please ensure all pending orders are shipped and resolve any open buyer disputes.";
+
+        await notificationHub.Clients.All.SendAsync("ReceiveWarning", sellerId, warnMessage);
+
+        TempData["SuccessMessage"] = $"Real-time warning sent to seller '{seller.username}'.";
+        return RedirectToAction(nameof(ReviewsFeedback), new { tab = "sellers" });
     }
 
     private bool CanAccessReviewsFeedback()
