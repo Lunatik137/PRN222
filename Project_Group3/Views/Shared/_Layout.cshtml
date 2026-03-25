@@ -88,9 +88,29 @@
             </div>
         </footer>
     }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script type="text/javascript">
+        (function() {
+            var currentUserId = @(Context.Session.GetInt32("UserId") ?? 0);
+            if (currentUserId > 0) {
+                var connection = new signalR.HubConnectionBuilder().withUrl("/notificationHub").build();
+                
+                connection.on("ReceiveWarning", function(targetSellerId, message) {
+                    if (targetSellerId === currentUserId) {
+                        alert("⚠️ CRITICAL WARNING: " + message);
+                    }
+                });
+                
+                connection.start().catch(function(err) {
+                    return console.error(err.toString());
+                });
+            }
+        })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
