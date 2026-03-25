@@ -9,7 +9,8 @@ public class AdminNotificationHub : Hub
     private static readonly HashSet<string> AdminRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         "superadmin",
-        "monitor"
+        "monitor",
+        "support"
     };
 
     public override async Task OnConnectedAsync()

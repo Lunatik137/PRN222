@@ -6,6 +6,7 @@ using Project_Group3.Models;
 using Project_Group3.Repository.Interfaces;
 using Project_Group3.Security;
 using Project_Group3.Services;
+using Project_Group3.Hubs;
 
 namespace Project_Group3.Controllers;
 
@@ -14,7 +15,8 @@ public class AdminController(
     CloneEbayDbContext dbContext,
     ILogger<AdminController> logger,
     IPasswordHasherService passwordHasherService,
-    IHubContext<NotificationHub> notificationHub) : Controller
+    IHubContext<NotificationHub> notificationHub,
+    IHubContext<AdminNotificationHub> adminNotificationHub) : Controller
 {
     private const string ProductStatusActive = "active";
     private const string ProductStatusReported = "reported";
@@ -227,6 +229,7 @@ public class AdminController(
             Target = product.title ?? $"Product #{product.id}",
             Details = input.Reason.Trim()
         });
+        await NotifyAdminCollaborationAsync("ProductModeration", "Report Product", product.title ?? $"Product #{product.id}", cancellationToken);
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -283,6 +286,7 @@ public class AdminController(
                         Target = product.title ?? $"Product #{product.id}",
                         Details = input.Reason.Trim()
                     });
+        await NotifyAdminCollaborationAsync("ProductModeration", "Hide Product", product.title ?? $"Product #{product.id}", cancellationToken);
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -334,6 +338,7 @@ public class AdminController(
                        Target = product.title ?? $"Product #{product.id}",
                        Details = input.Reason.Trim()
                    });
+        await NotifyAdminCollaborationAsync("ProductModeration", "Delete Product", product.title ?? $"Product #{product.id}", cancellationToken);
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -379,6 +384,7 @@ public class AdminController(
             Target = product.title ?? $"Product #{product.id}",
             Details = "Activated from hidden status."
         });
+        await NotifyAdminCollaborationAsync("ProductModeration", "Activate Product", product.title ?? $"Product #{product.id}", cancellationToken);
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -439,6 +445,7 @@ public class AdminController(
             Target = product.title ?? $"Product #{product.id}",
             Details = $"{input.Reason.Trim()} (report count = {reportCount})"
         });
+        await NotifyAdminCollaborationAsync("ProductModeration", "Auto Moderate Product", product.title ?? $"Product #{product.id}", cancellationToken);
 
         return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(input.Status, input.Keyword));
     }
@@ -644,6 +651,22 @@ public class AdminController(
             Target = targetName,
             Details = details
         });
+        await NotifyAdminCollaborationAsync("UserManagement", actionName, targetName, CancellationToken.None);
+    }
+
+    private async Task NotifyAdminCollaborationAsync(string area, string action, string target, CancellationToken cancellationToken)
+    {
+        var actorUsername = HttpContext.Session.GetString("Username") ?? "Admin";
+        var actorRole = HttpContext.Session.GetString("Role") ?? string.Empty;
+        await adminNotificationHub.Clients.Group(AdminNotificationHub.AdminGroupName).SendAsync(
+            "AdminCollabUpdated",
+            area,
+            action,
+            target,
+            actorUsername,
+            actorRole,
+            DateTime.UtcNow,
+            cancellationToken);
     }
 
     private IReadOnlyList<AdminActionLogItem> GetActionLogs()
