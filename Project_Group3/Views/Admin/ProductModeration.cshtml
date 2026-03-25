@@ -134,6 +134,14 @@
                                                 @product.description
                                             </td>
                                             <td>
+                                                <a asp-action="ProductModerationDetails"
+                                                   asp-controller="Admin"
+                                                   asp-route-id="@product.id"
+                                                   asp-route-status="@Model.Status"
+                                                   asp-route-keyword="@Model.Keyword"
+                                                   class="btn btn-outline-primary btn-sm w-100 mb-2">
+                                                    Details
+                                                </a>
                                                 @if (canPerformFullProductModeration)
                                                 {
                                                     @if (normalizedStatus == "hidden")

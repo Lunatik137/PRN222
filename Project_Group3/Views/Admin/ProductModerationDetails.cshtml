@@ -1,0 +1,75 @@
+﻿@model Project_Group3.Models.ProductModerationDetailsViewModel
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Product Moderation Details";
+    var username = Context.Session.GetString("Username") ?? "Admin";
+    var statusText = (Model.Product.status ?? "unknown").Trim().ToLowerInvariant();
+    var statusBadgeClass = statusText switch
+    {
+        "active" => "bg-success",
+        "reported" => "bg-danger",
+        "hidden" => "bg-secondary",
+        "deleted" => "bg-dark",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="admin-page-wrapper">
+    <div class="dashboard-shell">
+        <partial name="~/Views/Admin/_AdminSidebar.cshtml" />
+
+        <main class="dashboard-content">
+            <header class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                <div>
+                    <h1 class="h3 mb-1">Product Details</h1>
+                    <p class="text-muted mb-0">Review full product information and all escalation reasons. Signed in as <strong>@username</strong>.</p>
+                </div>
+                <div>
+                    <a asp-action="ProductModeration"
+                       asp-route-status="@Model.ReturnStatus"
+                       asp-route-keyword="@Model.ReturnKeyword"
+                       class="btn btn-outline-secondary">Back to moderation</a>
+                </div>
+            </header>
+
+            <section class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <h2 class="h5 mb-1">@(Model.Product.title ?? $"Product #{Model.Product.id}")</h2>
+                            <div class="text-muted mb-2">ID: #@Model.Product.id</div>
+                            <p class="mb-0">@Model.Product.description</p>
+                        </div>
+                        <div class="col-md-4">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between px-0"><span>Price</span><strong>@((Model.Product.price ?? 0m).ToString("C"))</strong></li>
+                                <li class="list-group-item d-flex justify-content-between px-0"><span>Status</span><span class="badge @statusBadgeClass">@(Model.Product.status ?? "unknown")</span></li>
+                                <li class="list-group-item d-flex justify-content-between px-0"><span>Seller</span><strong>@(Model.Product.seller?.username ?? "N/A")</strong></li>
+                                <li class="list-group-item d-flex justify-content-between px-0"><span>Reports</span><strong>@Model.ReportCount</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h2 class="h5">Escalation / Report Reasons</h2>
+                    @if (!Model.ReportReasons.Any())
+                    {
+                        <p class="text-muted mb-0">No escalation reasons available for this product.</p>
+                    }
+                    else
+                    {
+                        <ol class="mb-0 ps-3">
+                            @foreach (var reason in Model.ReportReasons)
+                            {
+                                <li class="mb-1">@reason</li>
+                            }
+                        </ol>
+                    }
+                </div>
+            </section>
+        </main>
+    </div>
+</div>

@@ -110,8 +110,7 @@ namespace Project_Group3.Controllers
 
         private static string AppendReportReason(string? existingReasons, string newReason, string reporter)
         {
-            var line = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] {reporter}: {newReason}";
-            return string.IsNullOrWhiteSpace(existingReasons)
+            var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {reporter}: {newReason}"; return string.IsNullOrWhiteSpace(existingReasons)
                 ? line
                 : $"{existingReasons}{Environment.NewLine}{line}";
         }
