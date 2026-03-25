@@ -189,6 +189,41 @@ public class AdminController(
         return View(vm);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> ProductModerationDetails(int? id, string? status, string? keyword, CancellationToken cancellationToken)
+    {
+        if (!CanAccessProductModeration())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        if (!id.HasValue || id.Value <= 0)
+        {
+            TempData["ActionError"] = "Missing product id for details page.";
+            return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(status, keyword));
+        }
+
+        var product = await dbContext.Products
+            .Include(p => p.seller)
+            .FirstOrDefaultAsync(p => p.id == id.Value, cancellationToken);
+        if (product is null)
+        {
+            TempData["ActionError"] = $"Product #{id.Value} not found.";
+            return RedirectToAction(nameof(ProductModeration), BuildProductRouteValues(status, keyword));
+        }
+
+        var vm = new ProductModerationDetailsViewModel
+        {
+            Product = product,
+            ReportCount = GetReportCount(product),
+            ReportReasons = GetReportReasons(product),
+            ReturnStatus = NormalizeProductStatus(status),
+            ReturnKeyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim()
+        };
+
+        return View("ProductModerationDetails", vm);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReportProduct(ReportProductInput input, CancellationToken cancellationToken)
